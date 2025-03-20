@@ -46,13 +46,15 @@ constexpr unsigned core_object_align (size_t size)
 template <unsigned TAG_BITS, unsigned ALIGN> class AtomicPtr;
 template <unsigned TAG_BITS, unsigned ALIGN> class LockablePtr;
 
-template <unsigned TAG_BITS, unsigned ALIGN = HEAP_UNIT_CORE>
+template <unsigned TAG_BITS_, unsigned ALIGN = HEAP_UNIT_CORE>
 class TaggedPtr
 {
-	static_assert (ALIGN == 1 << log2_ceil (ALIGN), "Alignment must be power of 2.");
 public:
+	static const unsigned TAG_BITS = TAG_BITS_;
+	static const unsigned ALIGN_BITS = log2_ceil (ALIGN);
+	static_assert (ALIGN == 1 << ALIGN_BITS, "Alignment must be power of 2.");
 	static const uintptr_t ALIGN_MASK = ALIGN - 1;
-	static const uintptr_t TAG_MASK = ~(~0u << TAG_BITS);
+	static const uintptr_t TAG_MASK = ~(~(uintptr_t)0 << TAG_BITS);
 	static_assert (ALIGN_MASK >= TAG_MASK, "ALIGN_MASK >= TAG_MASK");
 	typedef AtomicPtr <TAG_BITS, ALIGN> Atomic;
 	typedef LockablePtr <TAG_BITS, ALIGN> Lockable;

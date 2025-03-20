@@ -267,12 +267,12 @@ protected:
 			return ins.first;
 		}
 
-		const NodeVal* head () const noexcept
+		NodeVal* head () const noexcept
 		{
 			return static_cast <NodeVal*> (Base::head ());
 		}
 
-		const NodeVal* tail () const noexcept
+		NodeVal* tail () const noexcept
 		{
 			return static_cast <NodeVal*> (Base::tail ());
 		}

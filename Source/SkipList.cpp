@@ -62,13 +62,11 @@ SkipListBase::SkipListBase (unsigned node_size, unsigned max_level, void* head_t
 #ifndef NDEBUG
 	node_cnt_ (0),
 #endif
-	head_ (new (head_tail) Node (max_level)),
-	tail_ (new (round_up ((uint8_t*)head_tail + Node::size (sizeof (Node), max_level), NODE_ALIGN)) Node (1)),
+	tail_ (new (round_up ((uint8_t*)head_tail, NODE_ALIGN)) Node (1)),
+	head_ (new (round_up ((uint8_t*)tail_ + Node::size (sizeof (Node), 1), NODE_ALIGN))
+		Node (max_level, tail_)),
 	node_size_ (node_size)
-{
-	std::fill_n (head_->next, max_level, tail_);
-	head_->valid_level = max_level;
-}
+{}
 
 SkipListBase::Node* SkipListBase::allocate_node (unsigned level)
 {

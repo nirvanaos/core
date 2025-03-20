@@ -795,7 +795,7 @@ bool Heap::check_owner (const void* p, size_t size)
 void Heap::change_protection (bool read_only)
 {
 	unsigned short protection = read_only ? (Memory::READ_ONLY | Memory::EXACTLY) : (Memory::READ_WRITE | Memory::EXACTLY);
-	const BlockList::NodeVal* p = block_list_.head ();
+	BlockList::NodeVal* p = block_list_.head ();
 	for (;;) {
 		p = static_cast <BlockList::NodeVal*> (static_cast <BlockList::Node*> (p->next [0].load ()));
 		if (p == block_list_.tail ())

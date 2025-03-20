@@ -31,38 +31,38 @@
 namespace Nirvana {
 namespace Core {
 
-void LockablePtrImpl::assign (uintptr_t src, uintptr_t lock_mask_inv) noexcept
+void LockablePtrImpl::assign (uintptr_t src, IntegralType lock_mask_inv) noexcept
 {
 	assert ((src & ~lock_mask_inv) == 0);
-	uintptr_t p = load (std::memory_order_acquire) & lock_mask_inv;
-	while (!compare_exchange_weak (p, src)) {
+	IntegralType p = ptr_.load (std::memory_order_acquire) & lock_mask_inv;
+	while (!ptr_.compare_exchange_weak (p, src)) {
 		p &= lock_mask_inv;
 	}
 }
 
-bool LockablePtrImpl::compare_exchange (uintptr_t& cur, uintptr_t to, uintptr_t lock_mask_inv) noexcept
+bool LockablePtrImpl::compare_exchange (uintptr_t& cur, uintptr_t to, IntegralType lock_mask_inv) noexcept
 {
-	uintptr_t tcur = cur;
+	IntegralType tcur = cur;
 	assert ((tcur & ~lock_mask_inv) == 0);
 	assert ((to & ~lock_mask_inv) == 0);
-	uintptr_t newcur = tcur;
-	while (!compare_exchange_weak (newcur, to)) {
+	IntegralType newcur = tcur;
+	while (!ptr_.compare_exchange_weak (newcur, to)) {
 		newcur &= lock_mask_inv;
 		if (newcur != tcur) {
-			cur = newcur;
+			cur = (uintptr_t)newcur;
 			return false;
 		}
 	}
 	return true;
 }
 
-uintptr_t LockablePtrImpl::lock (uintptr_t lock_mask, uintptr_t inc) noexcept
+uintptr_t LockablePtrImpl::lock (IntegralType lock_mask, IntegralType inc) noexcept
 {
 	for (BackOff bo;;) {
-		uintptr_t cur = load (std::memory_order_acquire);
+		IntegralType cur = ptr_.load (std::memory_order_acquire);
 		while ((cur & lock_mask) != lock_mask) {
-			if (compare_exchange_weak (cur, cur + inc))
-				return cur & ~lock_mask;
+			if (ptr_.compare_exchange_weak (cur, cur + inc))
+				return (uintptr_t)(cur & ~lock_mask);
 		}
 		bo ();
 	}

@@ -88,10 +88,26 @@ public:
 
 		Link::Lockable next [1];	// Variable length array.
 
+		void init_next (Link link) noexcept
+		{
+			Link::Lockable* p = next, * end = p + level;
+			do {
+				new (p) Link::Lockable (link);
+			} while (end != ++p);
+		}
+
 		Node (unsigned level) noexcept :
 			NodeBase (level)
 		{
-			std::fill_n ((uintptr_t*)next, level, 1);
+			init_next (Link (nullptr, 1));
+		}
+
+		// Head node constructor
+		Node (unsigned level, Node* tail) noexcept :
+			NodeBase (level)
+		{
+			init_next (Link (tail));
+			valid_level = level;
 		}
 
 		static constexpr size_t size (size_t node_size, unsigned level) noexcept
@@ -226,8 +242,8 @@ protected:
 #endif
 
 private:
-	Node* const head_;
 	Node* const tail_;
+	Node* const head_;
 	const unsigned node_size_;
 	RandomGenAtomic rndgen_;
 };

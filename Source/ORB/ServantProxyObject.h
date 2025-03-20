@@ -32,6 +32,7 @@
 #include "../TaggedPtr.h"
 #include "../MapUnorderedUnstable.h"
 #include "../HeapAllocator.h"
+#include "../LockablePtr.h"
 #include "Reference.h"
 #include "ObjectKey.h"
 #include "Services.h"
@@ -136,7 +137,7 @@ private:
 protected:
 	servant_reference <Nirvana::Core::SyncContext> adapter_context_;
 
-	static const size_t REF_SIZE = sizeof (Reference) + 4 * sizeof (void*);
+	static const size_t REF_SIZE = sizeof (Reference) + 3 * sizeof (void*) + sizeof (Nirvana::Core::LockablePtrImpl);
 	static const size_t REF_ALIGN = Nirvana::Core::core_object_align (REF_SIZE);
 	typedef Nirvana::Core::LockablePtrT <ReferenceLocal, 0, REF_ALIGN> RefPtr;
 

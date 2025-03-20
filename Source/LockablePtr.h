@@ -30,24 +30,57 @@
 
 #include "TaggedPtr.h"
 #include <atomic>
+#include <type_traits>
 
 namespace Nirvana {
 namespace Core {
 
-class LockablePtrImpl : public std::atomic <uintptr_t>
+class LockablePtrImpl
 {
-public:
-	using IntegralType = uintptr_t;
+protected:
+	static_assert (sizeof (void*) == 8 || sizeof (void*) == 4 || sizeof (void*) == 2, "Unknown platform address size");
 
-	LockablePtrImpl ()
+	// I think, 8 bit lock count is enough
+	static const unsigned SURELY_ENOUGH_LOCK_BITS = 8;
+
+	using IntegralType = std::conditional <sizeof (void*) == 8, uintptr_t,
+		std::conditional <sizeof (void*) == 4,
+#if ATOMIC_LLONG_LOCK_FREE
+		std::conditional <USE_LOCKABLE_PTR_64, uint64_t, uintptr_t>::type
+#else
+		uintptr_t
+#endif
+		,
+#if ATOMIC_LONG_LOCK_FREE
+		uint32_t
+#else
+		uintptr_t
+#endif
+		>::type>::type;
+
+#ifdef _WIN32
+	static const unsigned ADDRESS_BITS = (sizeof (void*) == 8) ? 48 : 31;
+	static const uintptr_t UNUSED_BITS_VAL = 0;
+#else
+#error Unknown host platform
+#endif
+
+	static const unsigned UNUSED_BITS = sizeof (void*) * 8 - ADDRESS_BITS;
+	static const uintptr_t UNUSED_BITS_MASK = ~(uintptr_t)0 << ADDRESS_BITS;
+
+	static const unsigned LOCK_BITS = (sizeof (IntegralType) - sizeof (void*)) * 8 + UNUSED_BITS;
+
+	static const bool USE_SHIFT = LOCK_BITS < SURELY_ENOUGH_LOCK_BITS;
+
+	LockablePtrImpl () noexcept
 	{
-		assert (is_lock_free ());
+		assert (ptr_.is_lock_free ());
 	}
 
-	LockablePtrImpl (uintptr_t ptr) :
-		std::atomic <uintptr_t> (ptr)
+	LockablePtrImpl (uintptr_t ptr) noexcept :
+		ptr_ (ptr)
 	{
-		assert (is_lock_free ());
+		assert (ptr_.is_lock_free ());
 	}
 
 	LockablePtrImpl (const LockablePtrImpl&) = delete;
@@ -56,79 +89,118 @@ public:
 	LockablePtrImpl& operator = (const LockablePtrImpl&) = delete;
 	LockablePtrImpl& operator = (LockablePtrImpl&&) = delete;
 
-	void assign (uintptr_t src, uintptr_t spin_mask_inv) noexcept;
-	bool compare_exchange (uintptr_t& cur, uintptr_t to, uintptr_t spin_mask_inv) noexcept;
-	uintptr_t lock (uintptr_t spin_mask, uintptr_t inc) noexcept;
+	void assign (uintptr_t src, IntegralType lock_mask_inv) noexcept;
+	bool compare_exchange (uintptr_t& cur, uintptr_t to, IntegralType lock_mask_inv) noexcept;
+	uintptr_t lock (IntegralType mask, IntegralType inc) noexcept;
+
+	void unlock (IntegralType inc) noexcept
+	{
+		ptr_.fetch_sub (inc, std::memory_order_release);
+	}
+
+	uintptr_t load (IntegralType lock_mask_inv) noexcept
+	{
+		return (uintptr_t)(ptr_.load (std::memory_order_acquire) & lock_mask_inv);
+	}
+
+private:
+	std::atomic <IntegralType> ptr_;
 };
 
 template <unsigned TAG_BITS, unsigned ALIGN = HEAP_UNIT_CORE>
-class LockablePtr
+class LockablePtr : public LockablePtrImpl
 {
 public:
 	typedef TaggedPtr <TAG_BITS, ALIGN> Ptr;
+	static_assert (Ptr::ALIGN_MASK > Ptr::TAG_MASK, "Ptr::ALIGN_MASK > Ptr::TAG_MASK");
 
 	LockablePtr () noexcept
 	{}
 
 	LockablePtr (Ptr src) noexcept :
-		ptr_ (src.ptr_)
+		LockablePtrImpl (to_lockable (src))
 	{}
 
-	Ptr load () const noexcept
+	Ptr load () noexcept
 	{
-		return Ptr (ptr_.load (std::memory_order_acquire) & ~LOCK_MASK);
+		return from_lockable (LockablePtrImpl::load (~LOCK_MASK));
 	}
-
-	LockablePtr& operator = (const LockablePtr&) = delete;
 
 	Ptr operator = (Ptr src) noexcept
 	{
-		ptr_.assign (src.ptr_, ~LOCK_MASK);
+		assign (to_lockable (src), ~LOCK_MASK);
 		return src;
 	}
 
-	bool cas (Ptr from, const Ptr& to) noexcept
+	bool cas (const Ptr& from, const Ptr& to) noexcept
 	{
-		return compare_exchange (from, to);
+		uintptr_t lcur = to_lockable (from), lto = to_lockable (to);
+		return LockablePtrImpl::compare_exchange (lcur, lto, ~LOCK_MASK);
 	}
 
 	bool compare_exchange (Ptr& cur, const Ptr& to) noexcept
 	{
-		return ptr_.compare_exchange (cur.ptr_, to.ptr_, ~LOCK_MASK);
+		uintptr_t lcur = to_lockable (cur), lto = to_lockable (to);
+		bool ret = LockablePtrImpl::compare_exchange (lcur, lto, ~LOCK_MASK);
+		cur = from_lockable (lcur);
+		return ret;
 	}
 
 	Ptr lock () noexcept
 	{
-		return Ptr (ptr_.lock (LOCK_MASK, LOCK_INC));
+		return from_lockable (LockablePtrImpl::lock (LOCK_MASK, LOCK_INC));
 	}
 
 	void unlock () noexcept
 	{
-		ptr_.fetch_sub (LOCK_INC, std::memory_order_release);
+		LockablePtrImpl::unlock (LOCK_INC);
 	}
 
 	Ptr exchange (const Ptr& to) noexcept
 	{
-		Ptr cur = load ();
+		uintptr_t lto = to_lockable (to);
+		uintptr_t cur = LockablePtrImpl::load (~LOCK_MASK);
+		while (!LockablePtrImpl::compare_exchange (cur, lto, ~LOCK_MASK))
+			;
 
-		while (!compare_exchange (cur, to)) {
-		}
-
-		return cur;
+		return from_lockable (cur);
 	}
 
 private:
-	static_assert (Ptr::ALIGN_MASK > Ptr::TAG_MASK, "Ptr::ALIGN_MASK > Ptr::TAG_MASK");
-	static const uintptr_t LOCK_MASK = Ptr::ALIGN_MASK & ~Ptr::TAG_MASK;
-	static const uintptr_t LOCK_INC = 1 << TAG_BITS;
+	static const unsigned SHIFT_BITS = USE_SHIFT ? (Ptr::ALIGN_BITS - Ptr::TAG_BITS) : 0;
+	static const unsigned LOCK_BITS = USE_SHIFT ?
+		(LockablePtrImpl::LOCK_BITS + SHIFT_BITS) : LockablePtrImpl::LOCK_BITS;
 
-	LockablePtrImpl ptr_;
+	static const unsigned LOCK_OFFSET = sizeof (IntegralType) * 8 - LOCK_BITS;
+	static const IntegralType LOCK_MASK = ~(IntegralType)0 << LOCK_OFFSET;
+	static const IntegralType LOCK_INC = (IntegralType)1 << LOCK_OFFSET;
+
+	static uintptr_t to_lockable (Ptr src) noexcept
+	{
+		assert ((src.ptr_ & (Ptr::ALIGN_MASK & ~Ptr::TAG_MASK)) == 0);
+		assert ((src.ptr_ & UNUSED_BITS_MASK) == UNUSED_BITS_VAL);
+		uintptr_t u = (src.ptr_ & ~UNUSED_BITS_VAL) >> SHIFT_BITS;
+		if (TAG_BITS)
+			u |= src.ptr_ & Ptr::TAG_MASK;
+		return u;
+	}
+
+	static Ptr from_lockable (uintptr_t src) noexcept
+	{
+		assert ((src & LOCK_MASK) == 0);
+		uintptr_t u = (src & ~Ptr::TAG_MASK) << SHIFT_BITS;
+		if (TAG_BITS)
+			u |= src & Ptr::TAG_MASK;
+		return Ptr (u);
+	}
+
 };
 
 template <class T, unsigned TAG_BITS = 0, unsigned ALIGN = core_object_align (sizeof (T))>
 class LockablePtrT : public LockablePtr <TAG_BITS, ALIGN>
 {
 	typedef LockablePtr <TAG_BITS, ALIGN> Base;
+
 public:
 	typedef TaggedPtrT <T, TAG_BITS, ALIGN> Ptr;
 
@@ -139,7 +211,7 @@ public:
 		Base (src)
 	{}
 
-	Ptr load () const noexcept
+	Ptr load () noexcept
 	{
 		return Ptr (Base::load ());
 	}
