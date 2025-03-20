@@ -34,7 +34,7 @@
 namespace Nirvana {
 namespace Core {
 
-template <unsigned TAG_BITS, unsigned ALIGN = HEAP_UNIT_CORE>
+template <unsigned TAG_BITS, unsigned ALIGN>
 class AtomicPtr
 {
 public:

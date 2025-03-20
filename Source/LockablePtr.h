@@ -70,8 +70,10 @@ protected:
 
 	static const unsigned LOCK_BITS = (sizeof (IntegralType) - sizeof (void*)) * 8 + UNUSED_BITS;
 
+public:
 	static const bool USE_SHIFT = LOCK_BITS < SURELY_ENOUGH_LOCK_BITS;
 
+protected:
 	LockablePtrImpl () noexcept
 	{
 		assert (ptr_.is_lock_free ());
@@ -107,12 +109,12 @@ private:
 	std::atomic <IntegralType> ptr_;
 };
 
-template <unsigned TAG_BITS, unsigned ALIGN = HEAP_UNIT_CORE>
+template <unsigned TAG_BITS, unsigned ALIGN>
 class LockablePtr : public LockablePtrImpl
 {
 public:
 	typedef TaggedPtr <TAG_BITS, ALIGN> Ptr;
-	static_assert (Ptr::ALIGN_MASK > Ptr::TAG_MASK, "Ptr::ALIGN_MASK > Ptr::TAG_MASK");
+	static_assert (!USE_SHIFT || Ptr::ALIGN_MASK > Ptr::TAG_MASK, "Ptr::ALIGN_MASK > Ptr::TAG_MASK");
 
 	LockablePtr () noexcept
 	{}
@@ -142,7 +144,8 @@ public:
 	{
 		uintptr_t lcur = to_lockable (cur), lto = to_lockable (to);
 		bool ret = LockablePtrImpl::compare_exchange (lcur, lto, ~LOCK_MASK);
-		cur = from_lockable (lcur);
+		if (!ret)
+			cur = from_lockable (lcur);
 		return ret;
 	}
 
@@ -179,18 +182,27 @@ private:
 	{
 		assert ((src.ptr_ & (Ptr::ALIGN_MASK & ~Ptr::TAG_MASK)) == 0);
 		assert ((src.ptr_ & UNUSED_BITS_MASK) == UNUSED_BITS_VAL);
-		uintptr_t u = (src.ptr_ & ~UNUSED_BITS_VAL) >> SHIFT_BITS;
-		if (TAG_BITS)
-			u |= src.ptr_ & Ptr::TAG_MASK;
+		uintptr_t u = src.ptr_ & ~UNUSED_BITS_VAL;
+		if (SHIFT_BITS) {
+			if (Ptr::TAG_MASK)
+				u = ((u & ~Ptr::TAG_MASK) >> SHIFT_BITS) | (u & Ptr::TAG_MASK);
+			else
+				u >>= SHIFT_BITS;
+		}
+		assert ((u & LOCK_MASK) == 0);
 		return u;
 	}
 
-	static Ptr from_lockable (uintptr_t src) noexcept
+	static Ptr from_lockable (uintptr_t u) noexcept
 	{
-		assert ((src & LOCK_MASK) == 0);
-		uintptr_t u = (src & ~Ptr::TAG_MASK) << SHIFT_BITS;
-		if (TAG_BITS)
-			u |= src & Ptr::TAG_MASK;
+		assert ((u & LOCK_MASK) == 0);
+		if (SHIFT_BITS) {
+			if (Ptr::TAG_MASK)
+				u = ((u & ~Ptr::TAG_MASK) << SHIFT_BITS) | (u & Ptr::TAG_MASK);
+			else
+				u <<= SHIFT_BITS;
+		}
+		u |= UNUSED_BITS_VAL;
 		return Ptr (u);
 	}
 

@@ -46,7 +46,7 @@ constexpr unsigned core_object_align (size_t size)
 template <unsigned TAG_BITS, unsigned ALIGN> class AtomicPtr;
 template <unsigned TAG_BITS, unsigned ALIGN> class LockablePtr;
 
-template <unsigned TAG_BITS_, unsigned ALIGN = HEAP_UNIT_CORE>
+template <unsigned TAG_BITS_, unsigned ALIGN>
 class TaggedPtr
 {
 public:
