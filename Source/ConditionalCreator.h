@@ -39,9 +39,9 @@ class CreatorWithPool
 	using Pool = ObjectPool <ObjRef>;
 
 public:
-	static void initialize () noexcept
+	static void initialize (unsigned min_size) noexcept
 	{
-		pool_.construct ();
+		pool_.construct (min_size);
 	}
 
 	static void terminate () noexcept
@@ -70,7 +70,7 @@ template <class ObjRef>
 class CreatorNoPool : public ObjectCreator <ObjRef>
 {
 public:
-	static void initialize () noexcept
+	static void initialize (unsigned min_size) noexcept
 	{}
 
 	static void terminate () noexcept

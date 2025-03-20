@@ -38,7 +38,7 @@ StaticallyAllocated <ExecDomain::Reschedule> ExecDomain::reschedule_;
 
 void ExecDomain::initialize () noexcept
 {
-	Creator::initialize ();
+	Creator::initialize (EXEC_DOMAIN_POOL_MIN);
 
 	deleter_.construct ();
 	reschedule_.construct ();

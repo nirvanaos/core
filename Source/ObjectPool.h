@@ -31,6 +31,7 @@
 #include "Stack.h"
 #include "TimerAsyncCall.h"
 #include "Heap.h"
+#include "AtomicCounter.h"
 #include <Port/config.h>
 
 namespace Nirvana {
@@ -90,9 +91,24 @@ public:
 	}
 
 protected:
-	ObjectPoolBase ();
+	ObjectPoolBase (unsigned min_size) noexcept;
 
 	virtual void shrink () noexcept = 0;
+
+	void on_push () noexcept
+	{
+		cur_size_.increment ();
+	}
+
+	void on_pop () noexcept;
+
+	bool need_shrink () noexcept
+	{
+		if (cur_size_.load () > min_size_)
+			return shrink_.test_and_set ();
+		else
+			return false;
+	}
 
 private:
 	class Timer :
@@ -111,33 +127,18 @@ private:
 private:
 	ObjectPoolBase* next_;
 
+	AtomicCounter <false> cur_size_;
+	unsigned min_size_;
+	std::atomic_flag shrink_;
+
 	static ObjectPoolBase* pool_list_;
 	static Timer* timer_;
-};
-
-class ObjectPoolCleanup
-{
-public:
-	void bottom () noexcept
-	{
-		// Object pool bottom is reached, reset cleanup flag.
-		shrink_.store (false, std::memory_order_relaxed);
-	}
-
-	bool shrink () noexcept
-	{
-		return shrink_.exchange (true, std::memory_order_relaxed);
-	}
-
-private:
-	std::atomic <bool> shrink_;
 };
 
 template <class ObjRef>
 using ObjectPoolStack = Stack <
 	typename ObjectCreator <ObjRef>::Object,
-	core_object_align (sizeof (typename ObjectCreator <ObjRef>::Object)),
-		ObjectPoolCleanup>;
+	core_object_align (sizeof (typename ObjectCreator <ObjRef>::Object))>;
 
 /// Object pool
 /// 
@@ -158,7 +159,8 @@ public:
 	/// Constructor.
 	/// 
 	/// \param housekeeping_interval Housekeeping interval.
-	ObjectPool ()
+	ObjectPool (unsigned min_size) :
+		ObjectPoolBase (min_size)
 	{}
 
 	/// Destructor.
@@ -177,12 +179,11 @@ public:
 	{
 		ObjRef ret;
 		Object* obj = Stack::pop ();
-		if (obj)
+		if (obj) {
 			ret = obj;
-		else {
-			Stack::bottom ();
+			on_pop ();
+		} else
 			ret = Creator::create ();
-		}
 
 		assert ((((uintptr_t)&*ret) & Stack::Ptr::ALIGN_MASK) == 0);
 		return ret;
@@ -194,12 +195,13 @@ public:
 	void release (Object* obj) noexcept
 	{
 		Stack::push (*obj);
+		on_push ();
 	}
 
 private:
 	void shrink () noexcept override
 	{
-		if (Stack::shrink ()) {
+		if (need_shrink ()) {
 			Object* obj = Stack::pop ();
 			if (obj)
 				Creator::release (obj);

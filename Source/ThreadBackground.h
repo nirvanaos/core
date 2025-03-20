@@ -50,7 +50,7 @@ class ThreadBackground :
 public:
 	static void initialize ()
 	{
-		Creator::initialize ();
+		Creator::initialize (BACKGROUND_THREAD_POOL_MIN);
 	}
 
 	static void terminate () noexcept

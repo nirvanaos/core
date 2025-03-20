@@ -33,10 +33,18 @@ namespace Core {
 ObjectPoolBase* ObjectPoolBase::pool_list_;
 ObjectPoolBase::Timer* ObjectPoolBase::timer_;
 
-ObjectPoolBase::ObjectPoolBase () :
-	next_ (pool_list_)
+ObjectPoolBase::ObjectPoolBase (unsigned min_size) noexcept :
+	next_ (pool_list_),
+	min_size_ (min_size),
+	shrink_ ATOMIC_FLAG_INIT
 {
 	pool_list_ = this;
+}
+
+void ObjectPoolBase::on_pop () noexcept
+{
+	if (cur_size_.decrement_seq () <= min_size_)
+		shrink_.clear ();
 }
 
 void ObjectPoolBase::Timer::run (const TimeBase::TimeT&) noexcept

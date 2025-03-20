@@ -43,15 +43,9 @@ struct StackElem
 	AtomicCounter <false> ref_cnt;
 };
 
-struct StackBaseDummy
-{
-	static void bottom () noexcept
-	{}
-};
-
 /// Lock-free stack implementation.
-template <class T, unsigned ALIGN = core_object_align (sizeof (T)), class Base = StackBaseDummy>
-class Stack : public Base
+template <class T, unsigned ALIGN = core_object_align (sizeof (T))>
+class Stack
 {
 	Stack (const Stack&) = delete;
 	Stack& operator = (const Stack&) = delete;
@@ -68,55 +62,59 @@ public:
 	/// Push object to the stack.
 	/// 
 	/// \param elem Object.
-	void push (T& elem) noexcept
-	{
-		StackElem* node = &static_cast <StackElem&> (elem);
-		// Initialize ref_cnt with 1.
-		::new (&(node->ref_cnt)) AtomicCounter <false> (1);
-		// While element is attached to the stack, ref_cnt is always > 0.
-
-		// Push element to the stack
-		Ptr ptr = &elem;
-		Ptr head = head_.load ();
-		do
-			node->next = head;
-		while (!head_.compare_exchange (head, ptr));
-	}
+	void push (T& elem) noexcept;
 
 	/// Pop object from the stack.
 	/// 
 	/// \returns The object pointer or `nullptr` if the stack is empty.
-	T* pop () noexcept
-	{
-		for (;;) {
-			// Get head and increment counter on it
-			Ptr head = head_.lock ();
-			T* phead = head;
-			if (phead) {
-				StackElem& node = static_cast <StackElem&> (*phead);
-				node.ref_cnt.increment ();
-				head_.unlock ();
-				Ptr next = (T*)(node.next);
-				if (head_.cas (head, next)) {
-					// Node was detached from stack so we decrement the counter
-					if (!next)
-						Base::bottom (); // We reached the bottom
-					node.ref_cnt.decrement ();
-				}
-
-				// First thread that decrement counter to zero will return detached node
-				if (!node.ref_cnt.decrement_seq ())
-					return head;
-			} else {
-				head_.unlock ();
-				return nullptr;
-			}
-		}
-	}
+	T* pop () noexcept;
 
 private:
 	LockablePtrT <T, 0, ALIGN> head_;
 };
+
+template <class T, unsigned ALIGN>
+void Stack <T, ALIGN>::push (T& elem) noexcept
+{
+	StackElem* node = &static_cast <StackElem&> (elem);
+	// Initialize ref_cnt with 1.
+	::new (&(node->ref_cnt)) AtomicCounter <false> (1);
+	// While element is attached to the stack, ref_cnt is always > 0.
+
+	// Push element to the stack
+	Ptr ptr = &elem;
+	Ptr head = head_.load ();
+	do
+		node->next = head;
+	while (!head_.compare_exchange (head, ptr));
+}
+
+template <class T, unsigned ALIGN>
+T* Stack <T, ALIGN>::pop () noexcept
+{
+	for (;;) {
+		// Get head and increment counter on it
+		Ptr head = head_.lock ();
+		T* phead = head;
+		if (phead) {
+			StackElem& node = static_cast <StackElem&> (*phead);
+			node.ref_cnt.increment ();
+			head_.unlock ();
+			Ptr next = (T*)(node.next);
+			if (head_.cas (head, next)) {
+				// Node was detached from stack so we decrement the counter
+				node.ref_cnt.decrement ();
+			}
+
+			// First thread that decrement counter to zero will return detached node
+			if (!node.ref_cnt.decrement_seq ())
+				return head;
+		} else {
+			head_.unlock ();
+			return nullptr;
+		}
+	}
+}
 
 }
 }
