@@ -76,9 +76,13 @@ private:
 	};
 
 public:
-	// Assume that key and value at least sizeof(void*) each.
-	// So we add 3 * sizeof (void*) to the node size: next, key, and value.
-	static const unsigned NODE_ALIGN = 1 << log2_ceil (sizeof (NodeBase) + 3 * sizeof (void*));
+	static const unsigned NODE_ALIGN = LockablePtrImpl::USE_SHIFT ?
+		// Assume that key and value at least sizeof(void*) each.
+		// So we add 3 * sizeof (void*) to the node size: next, key, and value.
+		1 << log2_ceil (sizeof (NodeBase) + 3 * sizeof (void*))
+		: 
+		(unsigned)alignof (NodeBase); // We don't use alignment for locking, just use 1 bit for tag.
+
 	typedef TaggedPtrT <Node, 1, NODE_ALIGN> Link;
 
 	struct NIRVANA_NOVTABLE Node : NodeBase
@@ -174,7 +178,7 @@ protected:
 
 	size_t node_size (unsigned level) const noexcept
 	{
-		return Node::size (node_size_, level);
+		return std::max (Node::size (node_size_, level), (size_t)(NODE_ALIGN / 2 + 1));
 	}
 
 	Node* insert (Node* new_node, Node** saved_nodes) noexcept;
@@ -266,7 +270,10 @@ public:
 protected:
 	SkipListL (unsigned node_size) noexcept :
 		Base (node_size, MAX_LEVEL, &head_tail_)
-	{}
+	{
+		assert ((const uint8_t*)tail () + Node::size (sizeof (Node), 1) <=
+			head_tail_.space + sizeof (head_tail_.space));
+	}
 
 	Node* insert (Node* new_node) noexcept
 	{

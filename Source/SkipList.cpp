@@ -62,16 +62,19 @@ SkipListBase::SkipListBase (unsigned node_size, unsigned max_level, void* head_t
 #ifndef NDEBUG
 	node_cnt_ (0),
 #endif
-	tail_ (new (round_up ((uint8_t*)head_tail, NODE_ALIGN)) Node (1)),
-	head_ (new (round_up ((uint8_t*)tail_ + Node::size (sizeof (Node), 1), NODE_ALIGN))
-		Node (max_level, tail_)),
+	tail_ (new (round_up ((uint8_t*)head_tail + Node::size (sizeof (Node), max_level), NODE_ALIGN)) Node (1)),
+	head_ (new (head_tail) Node (max_level, tail_)),
 	node_size_ (node_size)
-{}
+{
+	// Tail node must be properly aligned
+	assert ((uintptr_t)tail_ % NODE_ALIGN == 0);
+}
 
 SkipListBase::Node* SkipListBase::allocate_node (unsigned level)
 {
 	size_t cb = node_size (level);
 	Node* p = (Node*)Heap::core_heap ().allocate (0, cb, 0);
+	assert ((uintptr_t)p % NODE_ALIGN == 0);
 	p->level = (Level)level;
 #ifndef NDEBUG
 	node_cnt_.increment ();
