@@ -222,13 +222,9 @@ protected:
 
 private:
 	static Node* read_node (Link::Lockable& node) noexcept;
-
 	Node* read_next (Node*& node1, int level) noexcept;
-
 	Node* scan_key (Node*& node1, int level, const Node* keynode) noexcept;
-
 	Node* help_delete (Node*, int level) noexcept;
-
 	void remove_node (Node* node, Node*& prev, int level) noexcept;
 	void final_delete (Node* node) noexcept;
 	void mark_next_links (Node* node, int from_level) noexcept;
@@ -261,54 +257,19 @@ class SkipListL :
 	typedef SkipListBase Base;
 public:
 	/// Only `Node::level` member is valid on return.
-	virtual Node* allocate_node ()
-	{
-		// Choose level randomly.
-		return Base::allocate_node (random_level ());
-	}
+	virtual Node* allocate_node ();
 
 protected:
-	SkipListL (unsigned node_size) noexcept :
-		Base (node_size, MAX_LEVEL, &head_tail_)
-	{
-		assert ((const uint8_t*)tail () + Node::size (sizeof (Node), 1) <=
-			head_tail_.space + sizeof (head_tail_.space));
-	}
+	SkipListL (unsigned node_size) noexcept;
 
-	Node* insert (Node* new_node) noexcept
-	{
-		Node* save_nodes [MAX_LEVEL];
-		return Base::insert (new_node, save_nodes);
-	}
+	Node* insert (Node* new_node) noexcept;
 
 	unsigned random_level () noexcept
 	{
 		return MAX_LEVEL > 1 ? std::min (Base::random_level (), MAX_LEVEL) : 1;
 	}
 
-	SkipListL& operator = (SkipListL&& other) noexcept
-	{
-		Base::operator = (std::move (other));
-
-		// Clear this list
-		while (Node* node = delete_min ()) {
-			release_node (node);
-		}
-
-		// Move nodes
-		while (Node* node = other.delete_min ()) {
-			node->deleted = false;
-			node = insert (node);
-			release_node (node);
-		}
-
-#ifndef NDEBUG
-		new (&node_cnt_) AtomicCounter <false> ((AtomicCounter <false>::IntegralType)other.node_cnt_);
-		new (&other.node_cnt_) AtomicCounter <false> (0);
-#endif
-
-		return *this;
-	}
+	SkipListL& operator = (SkipListL&& other) noexcept;
 
 private:
 	// Memory space for head and tail nodes.
@@ -319,6 +280,53 @@ private:
 	};
 	HeadTailSpace head_tail_;
 };
+
+template <unsigned MAX_LEVEL>
+SkipListL <MAX_LEVEL>::SkipListL (unsigned node_size) noexcept :
+	Base (node_size, MAX_LEVEL, &head_tail_)
+{
+	assert ((const uint8_t*)tail () + Node::size (sizeof (Node), 1) <=
+		head_tail_.space + sizeof (head_tail_.space));
+}
+
+template <unsigned MAX_LEVEL>
+SkipListBase::Node* SkipListL <MAX_LEVEL>::allocate_node ()
+{
+	// Choose level randomly.
+	return Base::allocate_node (random_level ());
+}
+
+template <unsigned MAX_LEVEL>
+SkipListBase::Node* SkipListL <MAX_LEVEL>::insert (Node* new_node) noexcept
+{
+	Node* save_nodes [MAX_LEVEL];
+	return Base::insert (new_node, save_nodes);
+}
+
+template <unsigned MAX_LEVEL>
+SkipListL <MAX_LEVEL>& SkipListL <MAX_LEVEL>::operator = (SkipListL&& other) noexcept
+{
+	Base::operator = (std::move (other));
+
+	// Clear this list
+	while (Node* node = delete_min ()) {
+		release_node (node);
+	}
+
+	// Move nodes
+	while (Node* node = other.delete_min ()) {
+		node->deleted = false;
+		node = insert (node);
+		release_node (node);
+	}
+
+#ifndef NDEBUG
+	new (&node_cnt_) AtomicCounter <false> ((AtomicCounter <false>::IntegralType)other.node_cnt_);
+	new (&other.node_cnt_) AtomicCounter <false> (0);
+#endif
+
+	return *this;
+}
 
 /// Skip list implementation for the given node value type and maximal level count.
 /// \tparam Val Node value type. Must have operator <.
