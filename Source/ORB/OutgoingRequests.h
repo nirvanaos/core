@@ -30,6 +30,7 @@
 
 #include "../SkipList.h"
 #include "RequestOut.h"
+#include <Port/config.h>
 #include <type_traits>
 
 namespace CORBA {
@@ -38,7 +39,7 @@ namespace Core {
 /// Outgoing requests manager
 class OutgoingRequests
 {
-	static const unsigned SKIP_LIST_LEVELS = 10; // TODO: config.h
+	static const unsigned SKIP_LIST_LEVELS = Nirvana::Core::SKIP_LIST_DEFAULT_LEVELS;
 
 public:
 	/// Called on system startup

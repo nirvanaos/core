@@ -46,7 +46,7 @@ class NIRVANA_NOVTABLE SyncDomain :
 	DECLARE_CORE_INTERFACE
 	
 private:
-	typedef PriorityQueue <Ref <Executor>, SYNC_DOMAIN_PRIORITY_QUEUE_LEVELS> Queue;
+	typedef PriorityQueue <Ref <Executor>, SKIP_LIST_DEFAULT_LEVELS> Queue;
 
 public:
 	/// \brief Pre-allocated queue node

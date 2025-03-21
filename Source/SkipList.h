@@ -40,6 +40,7 @@
 #include "RandomGen.h"
 #include <algorithm>
 #include <utility>
+#include <Port/config.h>
 
 namespace Nirvana {
 namespace Core {
@@ -345,7 +346,7 @@ SkipListL <MAX_LEVEL>& SkipListL <MAX_LEVEL>::operator = (SkipListL&& other) noe
 /// Skip list implementation for the given node value type and maximal level count.
 /// \tparam Val Node value type. Must have operator <.
 /// \tparam MAX_LEVEL Maximal level count.
-template <typename Val, unsigned MAX_LEVEL>
+template <typename Val, unsigned MAX_LEVEL = SKIP_LIST_DEFAULT_LEVELS>
 class SkipList :
 	public SkipListL <MAX_LEVEL>
 {

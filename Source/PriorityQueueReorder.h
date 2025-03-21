@@ -70,7 +70,7 @@ struct PriorityQueueReorderKeyVal
 
 };
 
-template <typename Val, unsigned MAX_LEVEL>
+template <typename Val, unsigned MAX_LEVEL = SKIP_LIST_DEFAULT_LEVELS>
 class PriorityQueueReorder :
 	public SkipList <PriorityQueueReorderKeyVal <Val>, MAX_LEVEL>
 {

@@ -62,7 +62,7 @@ struct PriorityQueueKeyVal
 
 };
 
-template <typename Val, unsigned MAX_LEVEL>
+template <typename Val, unsigned MAX_LEVEL = SKIP_LIST_DEFAULT_LEVELS>
 class PriorityQueue :
 	public SkipList <PriorityQueueKeyVal <Val>, MAX_LEVEL>
 {

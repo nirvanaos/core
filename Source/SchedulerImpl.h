@@ -41,7 +41,7 @@ namespace Core {
 template <class T, class ExecutorRef>
 class SchedulerImpl
 {
-	typedef SkipListWithPool <PriorityQueueReorder <ExecutorRef, SYS_DOMAIN_PRIORITY_QUEUE_LEVELS> > Queue;
+	typedef SkipListWithPool <PriorityQueueReorder <ExecutorRef, SKIP_LIST_DEFAULT_LEVELS> > Queue;
 public:
 	SchedulerImpl () noexcept :
 		queue_ (SystemInfo::hardware_concurrency ()),

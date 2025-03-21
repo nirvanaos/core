@@ -253,9 +253,9 @@ protected:
 		};
 	};
 
-	class BlockList : public SkipList <MemoryBlock, HEAP_SKIP_LIST_LEVELS>
+	class BlockList : public SkipList <MemoryBlock, SKIP_LIST_DEFAULT_LEVELS>
 	{
-		typedef SkipList <MemoryBlock, HEAP_SKIP_LIST_LEVELS> Base;
+		typedef SkipList <MemoryBlock, SKIP_LIST_DEFAULT_LEVELS> Base;
 
 	public:
 		BlockList (Heap& heap) :
