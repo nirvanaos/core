@@ -44,6 +44,8 @@
 namespace Nirvana {
 namespace Core {
 
+class Heap;
+
 /// Base class implementing lock-free skip list algorithm.
 class SkipListBase
 {
@@ -129,13 +131,24 @@ public:
 	/// Only `Node:level` member is used.
 	virtual void deallocate_node (Node* node) noexcept;
 
+	/// Increment node reference counter.
+	/// 
+	/// \param node The node pointer.
+	/// \return The node pointer.
+	static Node* copy_node (Node* node) noexcept
+	{
+		assert (node);
+		node->ref_cnt.increment ();
+		return node;
+	}
+
 	/// Release node reference counter.
 	/// 
 	/// \param node The node pointer.
 	void release_node (Node* node) noexcept;
 
 protected:
-	SkipListBase (unsigned node_size, unsigned max_level, void* head_tail) noexcept;
+	SkipListBase (Heap& heap, unsigned node_size, unsigned max_level, void* head_tail) noexcept;
 
 	static bool pre_deallocate_node (SkipListBase::Node* node) noexcept
 	{
@@ -213,12 +226,7 @@ protected:
 		return *this;
 	}
 
-	static Node* copy_node (Node* node) noexcept
-	{
-		assert (node);
-		node->ref_cnt.increment ();
-		return node;
-	}
+	static Heap& core_heap () noexcept;
 
 private:
 	static Node* read_node (Link::Lockable& node) noexcept;
@@ -244,6 +252,7 @@ protected:
 private:
 	Node* const tail_;
 	Node* const head_;
+	Heap& heap_;
 	const unsigned node_size_;
 	RandomGenAtomic rndgen_;
 };
@@ -260,7 +269,7 @@ public:
 	virtual Node* allocate_node ();
 
 protected:
-	SkipListL (unsigned node_size) noexcept;
+	SkipListL (Heap& heap, unsigned node_size) noexcept;
 
 	Node* insert (Node* new_node) noexcept;
 
@@ -282,8 +291,8 @@ private:
 };
 
 template <unsigned MAX_LEVEL>
-SkipListL <MAX_LEVEL>::SkipListL (unsigned node_size) noexcept :
-	Base (node_size, MAX_LEVEL, &head_tail_)
+SkipListL <MAX_LEVEL>::SkipListL (Heap& heap, unsigned node_size) noexcept :
+	Base (heap, node_size, MAX_LEVEL, &head_tail_)
 {
 	assert ((const uint8_t*)tail () + Node::size (sizeof (Node), 1) <=
 		head_tail_.space + sizeof (head_tail_.space));
@@ -373,8 +382,8 @@ public:
 		}
 	};
 
-	SkipList () noexcept :
-		Base (sizeof (NodeVal))
+	SkipList (Heap& heap = Base::core_heap ()) noexcept :
+		Base (heap, sizeof (NodeVal))
 	{}
 
 	/// Inserts new node.

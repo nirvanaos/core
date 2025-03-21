@@ -58,12 +58,13 @@ bool SkipListBase::less (const Node& n1, const Node& n2) const noexcept
 	return n1 < n2; // Call virtual comparator
 }
 
-SkipListBase::SkipListBase (unsigned node_size, unsigned max_level, void* head_tail) noexcept :
+SkipListBase::SkipListBase (Heap& heap, unsigned node_size, unsigned max_level, void* head_tail) noexcept :
 #ifndef NDEBUG
 	node_cnt_ (0),
 #endif
 	tail_ (new (round_up ((uint8_t*)head_tail + Node::size (sizeof (Node), max_level), NODE_ALIGN)) Node (1)),
 	head_ (new (head_tail) Node (max_level, tail_)),
+	heap_ (heap),
 	node_size_ (node_size)
 {
 	// Tail node must be properly aligned
@@ -73,7 +74,7 @@ SkipListBase::SkipListBase (unsigned node_size, unsigned max_level, void* head_t
 SkipListBase::Node* SkipListBase::allocate_node (unsigned level)
 {
 	size_t cb = node_size (level);
-	Node* p = (Node*)Heap::core_heap ().allocate (0, cb, 0);
+	Node* p = (Node*)heap_.allocate (0, cb, 0);
 	assert ((uintptr_t)p % NODE_ALIGN == 0);
 	p->level = (Level)level;
 #ifndef NDEBUG
@@ -87,7 +88,7 @@ void SkipListBase::deallocate_node (Node* node) noexcept
 #ifndef NDEBUG
 	node_cnt_.decrement ();
 #endif
-	Heap::core_heap ().release (node, node_size (node->level));
+	heap_.release (node, node_size (node->level));
 }
 
 inline
@@ -498,6 +499,11 @@ bool SkipListBase::empty () noexcept
 	release_node (prev);
 	release_node (node);
 	return ret;
+}
+
+Heap& SkipListBase::core_heap () noexcept
+{
+	return Heap::core_heap ();
 }
 
 }

@@ -176,8 +176,8 @@ private:
 		SCHEDULED
 	};
 
-	Queue queue_;
 	Ref <MemContext> mem_context_;
+	Queue queue_;
 	ExecDomain* executing_domain_;
 	std::atomic <State> state_;
 	AtomicCounter <false> activity_cnt_;

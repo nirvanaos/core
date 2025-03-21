@@ -32,6 +32,7 @@ namespace Core {
 SyncDomain::SyncDomain (Ref <MemContext>&& mem_context) noexcept :
 	SyncContext (true),
 	mem_context_ (std::move (mem_context)),
+	queue_ (mem_context_->heap ()),
 	executing_domain_ (nullptr),
 	state_ (State::IDLE),
 	activity_cnt_ (0),
