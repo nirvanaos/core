@@ -213,11 +213,11 @@ void Heap::LBErase::rollback_helper () noexcept
 	}
 }
 
-Heap::Heap (size_t allocation_unit, bool do_not_decommit) noexcept :
+Heap::Heap (size_t allocation_unit, bool system) noexcept :
 	part_list_ (nullptr),
-	block_list_ (*this),
+	block_list_ (system ? *this : shared_heap ()),
 	allocation_unit_ (allocation_unit),
-	do_not_decommit_ (do_not_decommit)
+	dont_decommit_ (system)
 {
 	if (allocation_unit <= HEAP_UNIT_MIN)
 		allocation_unit_ = HEAP_UNIT_MIN;
@@ -306,7 +306,7 @@ void Heap::release (Directory& part, void* p, size_t size) const
 	size_t end = (offset + size + allocation_unit_ - 1) / allocation_unit_;
 	if (!part.check_allocated (begin, end))
 		throw_FREE_MEM ();
-	if (Directory::IMPLEMENTATION != HeapDirectoryImpl::PLAIN_MEMORY && !do_not_decommit_) {
+	if (Directory::IMPLEMENTATION != HeapDirectoryImpl::PLAIN_MEMORY && !dont_decommit_) {
 		HeapInfo hi = { heap, allocation_unit_, Port::Memory::OPTIMAL_COMMIT_UNIT };
 		part.release (begin, end, &hi);
 	} else
@@ -412,22 +412,22 @@ void Heap::add_large_block (void* p, size_t size)
 	}
 }
 
-void* Heap::allocate (Directory& part, size_t& size, unsigned flags, size_t allocation_unit) noexcept
+void* Heap::allocate (Directory& part, size_t& size, unsigned flags) const noexcept
 {
-	size_t units = (size + allocation_unit - 1) / allocation_unit;
+	size_t units = (size + allocation_unit_ - 1) / allocation_unit_;
 	uint8_t* heap = (uint8_t*)(&part + 1);
 	ptrdiff_t unit;
 	if (Directory::IMPLEMENTATION != HeapDirectoryImpl::PLAIN_MEMORY && !(flags & Memory::RESERVED)) {
-		HeapInfo hi = { heap, allocation_unit, Port::Memory::OPTIMAL_COMMIT_UNIT };
+		HeapInfo hi = { heap, allocation_unit_, Port::Memory::OPTIMAL_COMMIT_UNIT };
 		unit = part.allocate (units, &hi);
 	} else
 		unit = part.allocate (units, nullptr);
 	if (unit >= 0) {
 		assert (unit < Directory::UNIT_COUNT);
-		void* p = heap + unit * allocation_unit;
+		void* p = heap + unit * allocation_unit_;
 		if (flags & Memory::ZERO_INIT)
 			zero ((size_t*)p, (size_t*)p + (size + sizeof (size_t) - 1) / sizeof (size_t));
-		size = units * allocation_unit;
+		size = units * allocation_unit_;
 		return p;
 	}
 	return nullptr;
@@ -470,7 +470,7 @@ inline Heap::MemoryBlock* Heap::add_new_partition (AtomicBlockPtr& tail)
 	// Avoid recursion.
 	// The block list node is allocated from the new partition.
 	Directory& dir = create_partition ();
-	BlockList::NodeVal* node = block_list_.insert_partition (dir, allocation_unit_);
+	BlockList::NodeVal* node = block_list_.insert_partition (*this, dir);
 	MemoryBlock* part = &node->value ();
 	MemoryBlock* next = nullptr;
 	MemoryBlock* ret = part;
@@ -481,7 +481,8 @@ inline Heap::MemoryBlock* Heap::add_new_partition (AtomicBlockPtr& tail)
 		block_list_.remove (node);
 		block_list_.release_partition (*this, node);
 		release_partition (dir);
-	}
+	} else
+		block_list_.release_node (node);
 	return ret;
 }
 
@@ -774,9 +775,11 @@ bool Heap::check_owner (const void* p, size_t size)
 
 void Heap::change_protection (bool read_only)
 {
+	assert (&block_list_.heap () != this);
+
 	unsigned short protection = read_only ? (Memory::READ_ONLY | Memory::EXACTLY) : (Memory::READ_WRITE | Memory::EXACTLY);
 	
-	for (BlockList::NodeVal* p = block_list_.get_min_node (); p ; p = block_list_.next (p)) {
+	for (BlockList::NodeVal* p = block_list_.get_min_node (); p; p = block_list_.next (p)) {
 		const MemoryBlock& mb = p->value ();
 		uint8_t* begin = mb.begin ();
 		uint8_t* end = begin + (mb.is_large_block () ? mb.large_block_size () : partition_size ());
@@ -845,46 +848,52 @@ bool Heap::cleanup (bool final) noexcept
 		if (!keep_dir->empty ()) {
 			empty = false;
 			keep_dir->reset ();
-			if (!do_not_decommit_)
+			if (!dont_decommit_)
 				Port::Memory::decommit ((keep_dir + 1), partition_size ());
 		}
 
-		BlockList::NodeVal* node = block_list_.insert_partition (*keep_dir, allocation_unit_);
+		BlockList::NodeVal* node = block_list_.insert_partition (*this, *keep_dir);
 		part_list_ = &node->value ();
+		block_list_.release_node (node);
 	}
 
 	return empty;
 }
 
-Heap::BlockList::NodeVal* Heap::BlockList::insert_partition (Directory& part,
-	size_t allocation_unit) noexcept
+Heap::BlockList::NodeVal* Heap::BlockList::insert_partition (Heap& heap, Directory& part) noexcept
 {
-	unsigned level = Base::random_level ();
-	size_t cb = Base::node_size (level);
-	auto ins = Base::insert (new (Heap::allocate (part, cb, 0, allocation_unit))
-		NodeVal (level, std::ref (part)));
-	assert (ins.second);
+	std::pair <NodeVal*, bool> ins;
+	if (&Base::heap () == &heap) {
+		unsigned level = Base::random_level ();
+		size_t cb = Base::node_size (level);
+		ins = Base::insert (new (heap.allocate (part, cb, 0))
+			NodeVal (level, std::ref (part)));
+		assert (ins.second);
 #ifndef NDEBUG
-	node_cnt_.increment ();
+		node_cnt_.increment ();
 #endif
+	} else
+		ins = Base::insert (std::ref (part));
 	return ins.first;
 }
 
 void Heap::BlockList::release_partition (Heap& heap, NodeVal* node) noexcept
 {
 	assert (node->deleted);
-	Directory& part = node->value ().directory ();
-	heap.release (part, node, Base::node_size (node->level));
+	if (&Base::heap () == &heap) {
+		Directory& part = node->value ().directory ();
+		heap.release (part, node, Base::node_size (node->level));
 #ifndef NDEBUG
-	node_cnt_.decrement ();
+		node_cnt_.decrement ();
 #endif
+	} else
+		Base::release_node (node);
 }
 
 Heap::BlockList::NodeVal* Heap::BlockList::next (NodeVal* cur) noexcept
 {
 	if (cur) {
-		Node* next = copy_node (cur->next [0].lock ());
-		cur->next [0].unlock ();
+		Node* next = read_node (cur->next [0]);
 		release_node (cur);
 		if (next == tail ()) {
 			release_node (next);

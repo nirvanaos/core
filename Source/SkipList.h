@@ -56,6 +56,11 @@ public:
 
 	struct Node;
 
+	Heap& heap () const noexcept
+	{
+		return heap_;
+	}
+
 private:
 	/// NodeBase is used to determine the minimal size of node.
 	struct NIRVANA_NOVTABLE NodeBase
@@ -228,8 +233,9 @@ protected:
 
 	static Heap& core_heap () noexcept;
 
-private:
 	static Node* read_node (Link::Lockable& node) noexcept;
+
+private:
 	Node* read_next (Node*& node1, int level) noexcept;
 	Node* scan_key (Node*& node1, int level, const Node* keynode) noexcept;
 	Node* help_delete (Node*, int level) noexcept;

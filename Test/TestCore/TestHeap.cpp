@@ -209,15 +209,6 @@ TEST_F (TestHeap, ReadOnly)
 	heap_.release (p, pu);
 }
 
-TEST_F (TestHeap, Cleanup)
-{
-	size_t cb = sizeof (size_t);
-	size_t* p = (size_t*)heap_.allocate (nullptr, cb, 0);
-	EXPECT_FALSE (heap_.cleanup (false));
-	EXPECT_TRUE (heap_.cleanup (false));
-	EXPECT_TRUE (heap_.cleanup (true));
-}
-
 struct Block
 {
 	size_t tag;
@@ -545,6 +536,26 @@ TEST_F (TestHeap, HeapAllocator)
 			Cont cont1 (std::move (cont));
 		}
 	}
+}
+
+TEST_F (TestHeap, Cleanup)
+{
+	size_t cb = sizeof (size_t);
+	size_t* p = (size_t*)heap_.allocate (nullptr, cb, 0);
+	EXPECT_FALSE (heap_.cleanup (false));
+	EXPECT_TRUE (heap_.cleanup (false));
+}
+
+TEST_F (TestHeap, ChangeProtection)
+{
+	size_t cb = sizeof (size_t);
+	size_t* p = (size_t*)heap_.allocate (nullptr, cb, 0);
+	cb = 0x20000;
+	void* p1 = heap_.allocate (nullptr, cb, 0);
+	heap_.change_protection (true);
+	heap_.change_protection (false);
+	heap_.release (p1, cb);
+	heap_.release (p, sizeof (size_t));
 }
 
 }

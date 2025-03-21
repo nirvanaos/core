@@ -151,7 +151,7 @@ public:
 	inline static void terminate () noexcept;
 
 protected:
-	Heap (size_t allocation_unit = HEAP_UNIT_DEFAULT, bool do_not_decommit = false) noexcept;
+	Heap (size_t allocation_unit = HEAP_UNIT_DEFAULT, bool system = false) noexcept;
 	
 	~Heap ()
 	{
@@ -277,7 +277,7 @@ protected:
 			release_node (ins.first);
 		}
 
-		NodeVal* insert_partition (Directory& part, size_t allocation_unit) noexcept;
+		NodeVal* insert_partition (Heap& heap, Directory& part) noexcept;
 		void release_partition (Heap& heap, NodeVal* node) noexcept;
 
 		NodeVal* next (NodeVal* cur) noexcept;
@@ -298,13 +298,7 @@ protected:
 
 	Directory* get_partition (const void* p) noexcept;
 
-	static void* allocate (Directory& part, size_t& size, unsigned flags, size_t allocation_unit) noexcept;
-
-	void* allocate (Directory& part, size_t& size, unsigned flags) const noexcept
-	{
-		return allocate (part, size, flags, allocation_unit_);
-	}
-
+	void* allocate (Directory& part, size_t& size, unsigned flags) const noexcept;
 	void* allocate (Directory& part, void* p, size_t& size, unsigned flags) const noexcept;
 
 	void* allocate (size_t& size, unsigned flags);
@@ -320,7 +314,7 @@ private:
 	AtomicBlockPtr part_list_;
 	BlockList block_list_;
 	size_t allocation_unit_;
-	bool do_not_decommit_;
+	bool dont_decommit_;
 
 private:
 	static StaticallyAllocated <ImplStatic <Heap> > core_heap_;
