@@ -38,9 +38,13 @@ namespace Core {
 
 class EventUser :
 	public IDL::traits <Nirvana::Event>::Servant <EventUser>,
-	private EventSyncTimeout
+	private EventSyncTimeout,
+	public UserObject
 {
 public:
+	using UserObject::operator new;
+	using UserObject::operator delete;
+
 	EventUser (bool manual_reset, bool initial_state) :
 		EventSyncTimeout (initial_state ?
 			(manual_reset ? SIGNAL_ALL : 1) : 0),
