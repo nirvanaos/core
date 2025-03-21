@@ -165,6 +165,8 @@ protected:
 	///          Returned Node* must be released by release_node().
 	Node* get_min_node () noexcept;
 
+	Node* next (Node* cur) noexcept;
+
 	/// Deletes node with minimal key.
 	/// \returns `Node*` if list not empty or `nullptr` otherwise.
 	///          Returned Node* must be released by release_node().
@@ -231,11 +233,8 @@ protected:
 		return *this;
 	}
 
-	static Heap& core_heap () noexcept;
-
-	static Node* read_node (Link::Lockable& node) noexcept;
-
 private:
+	static Node* read_node (Link::Lockable& node) noexcept;
 	Node* read_next (Node*& node1, int level) noexcept;
 	Node* scan_key (Node*& node1, int level, const Node* keynode) noexcept;
 	Node* help_delete (Node*, int level) noexcept;
@@ -388,7 +387,7 @@ public:
 		}
 	};
 
-	SkipList (Heap& heap = Base::core_heap ()) noexcept :
+	SkipList (Heap& heap) noexcept :
 		Base (heap, sizeof (NodeVal))
 	{}
 
@@ -465,6 +464,11 @@ public:
 	NodeVal* get_min_node () noexcept
 	{
 		return static_cast <NodeVal*> (Base::get_min_node ());
+	}
+
+	NodeVal* next (NodeVal* cur) noexcept
+	{
+		return static_cast <NodeVal*> (Base::next (cur));
 	}
 
 	/// Deletes node with minimal value.

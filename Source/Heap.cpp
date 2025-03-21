@@ -26,7 +26,7 @@
 #include "pch.h"
 #include "MemContext.h"
 #include "HeapAllocator.h"
-#include <atomic>
+#include "HeapDynamic.h"
 
 namespace Nirvana {
 namespace Core {
@@ -890,18 +890,24 @@ void Heap::BlockList::release_partition (Heap& heap, NodeVal* node) noexcept
 		Base::release_node (node);
 }
 
-Heap::BlockList::NodeVal* Heap::BlockList::next (NodeVal* cur) noexcept
+bool Heap::initialize () noexcept
 {
-	if (cur) {
-		Node* next = read_node (cur->next [0]);
-		release_node (cur);
-		if (next == tail ()) {
-			release_node (next);
-			return nullptr;
-		}
-		return static_cast <NodeVal*> (next);
-	} else
-		return nullptr;
+	if (!Port::Memory::initialize ())
+		return false;
+	core_heap_.construct (HEAP_UNIT_CORE, true);
+	if (sizeof (void*) > 2)
+		shared_heap_.construct (HEAP_UNIT_DEFAULT, true);
+	HeapDynamic::initialize ();
+	return true;
+}
+
+void Heap::terminate () noexcept
+{
+	HeapDynamic::terminate ();
+	if (sizeof (void*) > 2)
+		shared_heap_.destruct ();
+	core_heap_.destruct ();
+	Port::Memory::terminate ();
 }
 
 }

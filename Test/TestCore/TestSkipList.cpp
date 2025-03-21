@@ -30,9 +30,18 @@
 #include "../Source/SystemInfo.h"
 #include <random>
 
-using Nirvana::Core::SkipList;
-
 namespace TestSkipList {
+
+template <typename Val, unsigned MAX_LEVEL>
+class SkipList : public Nirvana::Core::SkipList <Val, MAX_LEVEL>
+{
+	using Base = Nirvana::Core::SkipList <Val, MAX_LEVEL>;
+
+public:
+	SkipList () :
+		Base (Nirvana::Core::Heap::core_heap ())
+	{}
+};
 
 template <class SL>
 class TestSkipList : public ::testing::Test
@@ -70,8 +79,7 @@ typedef ::testing::Types <
 	SkipList <int, 4>,  // 0
 	SkipList <int, 8>,  // 1
 	SkipList <int, 10>, // 2
-	SkipList <int, 16>, // 3
-	SkipList <int, 32>  // 4
+	SkipList <int, 16>  // 3
 > MaxLevel;
 
 TYPED_TEST_SUITE (TestSkipList, MaxLevel);

@@ -44,7 +44,7 @@ public:
 	/// Called on system startup
 	static void initialize ()
 	{
-		map_.construct ();
+		map_.construct (std::ref (Nirvana::Core::Heap::core_heap ()));
 	}
 
 	/// Called on system shutdown

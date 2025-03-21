@@ -73,7 +73,7 @@ public:
 	typedef typename Base::NodeVal NodeVal;
 	typedef typename Base::Value Value;
 
-	PriorityQueue (Heap& heap = Base::core_heap ()) :
+	PriorityQueue (Heap& heap) :
 		Base (heap)
 	{}
 

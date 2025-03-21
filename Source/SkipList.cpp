@@ -251,6 +251,20 @@ SkipListBase::Node* SkipListBase::get_min_node () noexcept
 	return node;
 }
 
+SkipListBase::Node* SkipListBase::next (Node* cur) noexcept
+{
+	if (cur) {
+		Node* next = read_node (cur->next [0]);
+		release_node (cur);
+		if (next == tail ()) {
+			release_node (next);
+			return nullptr;
+		}
+		return next;
+	} else
+		return nullptr;
+}
+
 SkipListBase::Node* SkipListBase::delete_min () noexcept
 {
 	// Start from the head node.
@@ -499,11 +513,6 @@ bool SkipListBase::empty () noexcept
 	release_node (prev);
 	release_node (node);
 	return ret;
-}
-
-Heap& SkipListBase::core_heap () noexcept
-{
-	return Heap::core_heap ();
 }
 
 }

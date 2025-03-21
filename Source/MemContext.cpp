@@ -28,6 +28,7 @@
 #include "ExecDomain.h"
 #include "BinderMemory.h"
 #include "Chrono.h"
+#include "HeapDynamic.h"
 #include "ORB/Services.h"
 
 namespace Nirvana {
@@ -46,8 +47,7 @@ bool MemContext::is_current (const MemContext* context) noexcept
 
 Ref <Heap> MemContext::create_heap ()
 {
-	return sizeof (void*) > 2 ? Ref <Heap>::create <ImplDynamic <Heap> > () :
-		Ref <Heap> (&Heap::shared_heap ());
+	return sizeof (void*) > 2 ? HeapDynamic::create () : Ref <Heap> (&Heap::shared_heap ());
 }
 
 Ref <MemContext> MemContext::create (Ref <Heap>&& heap, bool class_library_init, bool core_context)

@@ -59,21 +59,30 @@ protected:
 		SystemInfo::initialize ();
 		ASSERT_TRUE (Heap::initialize ());
 		Chrono::initialize ();
+		heap_.construct ();
 	}
 
 	virtual void TearDown ()
 	{
 		// Code here will be called immediately after each test (right
 		// before the destructor).
-		EXPECT_TRUE (heap_.cleanup (true));
+		EXPECT_TRUE (heap_->cleanup (true));
 		Chrono::terminate ();
+		heap_.destruct ();
 		Heap::terminate ();
 		SystemInfo::terminate ();
 	}
 
+	static Heap& heap () noexcept
+	{
+		return heap_;
+	}
+
 protected:
-	ImplStatic <Heap> heap_;
+	static StaticallyAllocated <ImplStatic <Heap> > heap_;
 };
+
+StaticallyAllocated <ImplStatic <Heap> > TestHeap::heap_;
 
 bool check_readable (const size_t* begin, const size_t* end, size_t tag)
 {
@@ -104,12 +113,12 @@ bool check_writeable (void* p, size_t cb, size_t tag)
 TEST_F (TestHeap, Allocate)
 {
 	size_t cb = sizeof (int);
-	int* p = (int*)heap_.allocate (nullptr, cb, Memory::ZERO_INIT);
+	int* p = (int*)heap ().allocate (nullptr, cb, Memory::ZERO_INIT);
 	EXPECT_EQ (*p, 0);
 	EXPECT_EQ (cb, HEAP_UNIT_DEFAULT);
 	*p = 1;
-	heap_.release (p, sizeof (int));
-	EXPECT_THROW (heap_.release (p, sizeof (int)), CORBA::FREE_MEM);
+	heap ().release (p, sizeof (int));
+	EXPECT_THROW (heap ().release (p, sizeof (int)), CORBA::FREE_MEM);
 }
 
 TEST_F (TestHeap, LargeBlock)
@@ -121,13 +130,13 @@ TEST_F (TestHeap, LargeBlock)
 	for (unsigned bc_max = 1; bc_max <= BLOCK_COUNT_MAX; ++bc_max) {
 		uint8_t* blocks [BLOCK_COUNT_MAX];
 		size_t cb = BLOCK_SIZE;
-		uint8_t* p = (uint8_t*)heap_.allocate (nullptr, cb, 0);
+		uint8_t* p = (uint8_t*)heap ().allocate (nullptr, cb, 0);
 		EXPECT_EQ (cb, BLOCK_SIZE);
 		ASSERT_TRUE (p);
 		blocks [0] = p;
 		for (unsigned i = 1; i < bc_max; ++i) {
 			size_t cb = BLOCK_SIZE;
-			p = (uint8_t*)heap_.allocate (p + BLOCK_SIZE, cb, 0);
+			p = (uint8_t*)heap ().allocate (p + BLOCK_SIZE, cb, 0);
 			EXPECT_EQ (cb, BLOCK_SIZE);
 			ASSERT_TRUE (p);
 			blocks [i] = p;
@@ -137,76 +146,76 @@ TEST_F (TestHeap, LargeBlock)
 		uint8_t* end = p + BLOCK_SIZE;
 		for (unsigned i = 1; i < bc_max; ++i) {
 			if (blocks [i] != end) {
-				heap_.release (p, end - p);
+				heap ().release (p, end - p);
 				p = blocks [i];
 			}
 			end = blocks [i] + BLOCK_SIZE;
 		}
-		heap_.release (p, end - p);
-		EXPECT_TRUE (heap_.cleanup (false));
+		heap ().release (p, end - p);
+		EXPECT_TRUE (heap ().cleanup (false));
 	}
 
 	// Allocate large block and release smaller blocks from begin to end
 	for (unsigned bc_max = 2; bc_max <= BLOCK_COUNT_MAX; ++bc_max) {
 		size_t cb = BLOCK_SIZE * bc_max;
-		uint8_t* p = (uint8_t*)heap_.allocate (nullptr, cb, 0);
+		uint8_t* p = (uint8_t*)heap ().allocate (nullptr, cb, 0);
 		ASSERT_TRUE (p);
 		for (unsigned i = 0; i < bc_max; ++i) {
-			heap_.release (p + BLOCK_SIZE * i, BLOCK_SIZE);
+			heap ().release (p + BLOCK_SIZE * i, BLOCK_SIZE);
 		}
-		EXPECT_TRUE (heap_.cleanup (false));
+		EXPECT_TRUE (heap ().cleanup (false));
 	}
 
 	// Allocate large block and release smaller blocks from end to begin
 	for (unsigned bc_max = 2; bc_max <= BLOCK_COUNT_MAX; ++bc_max) {
 		size_t cb = BLOCK_SIZE * bc_max;
-		uint8_t* p = (uint8_t*)heap_.allocate (nullptr, cb, 0);
+		uint8_t* p = (uint8_t*)heap ().allocate (nullptr, cb, 0);
 		ASSERT_TRUE (p);
 		for (int i = bc_max - 1; i >= 0; --i) {
-			heap_.release (p + BLOCK_SIZE * i, BLOCK_SIZE);
+			heap ().release (p + BLOCK_SIZE * i, BLOCK_SIZE);
 		}
-		EXPECT_TRUE (heap_.cleanup (false));
+		EXPECT_TRUE (heap ().cleanup (false));
 	}
 
 	// Allocate large block and release smaller blocks even and odd
 	for (unsigned bc_max = 2; bc_max <= BLOCK_COUNT_MAX; ++bc_max) {
 		size_t cb = BLOCK_SIZE * bc_max;
-		uint8_t* p = (uint8_t*)heap_.allocate (nullptr, cb, 0);
+		uint8_t* p = (uint8_t*)heap ().allocate (nullptr, cb, 0);
 		ASSERT_TRUE (p);
 		for (int i = 1; i < bc_max; i += 2) {
-			heap_.release (p + BLOCK_SIZE * i, BLOCK_SIZE);
+			heap ().release (p + BLOCK_SIZE * i, BLOCK_SIZE);
 		}
 		for (int i = 0; i < bc_max; i += 2) {
-			heap_.release (p + BLOCK_SIZE * i, BLOCK_SIZE);
+			heap ().release (p + BLOCK_SIZE * i, BLOCK_SIZE);
 		}
-		EXPECT_TRUE (heap_.cleanup (false));
+		EXPECT_TRUE (heap ().cleanup (false));
 	}
 }
 
 TEST_F (TestHeap, ReadOnly)
 {
-	size_t pu = (size_t)heap_.query (nullptr, Memory::QueryParam::PROTECTION_UNIT);
+	size_t pu = (size_t)heap ().query (nullptr, Memory::QueryParam::PROTECTION_UNIT);
 	size_t cb = pu;
-	size_t* p = (size_t*)heap_.allocate (nullptr, cb, 0);
+	size_t* p = (size_t*)heap ().allocate (nullptr, cb, 0);
 	EXPECT_EQ (cb, pu);
-	size_t au = (size_t)heap_.query (p, Memory::QueryParam::ALLOCATION_UNIT);
+	size_t au = (size_t)heap ().query (p, Memory::QueryParam::ALLOCATION_UNIT);
 	if (au < pu) {
 		std::fill_n (p, pu / sizeof (size_t), 1);
 		cb = pu;
-		size_t* pro = (size_t*)heap_.copy (nullptr, p, cb, Memory::READ_ONLY);
+		size_t* pro = (size_t*)heap ().copy (nullptr, p, cb, Memory::READ_ONLY);
 		EXPECT_EQ (cb, pu);
 		EXPECT_TRUE (check_readable (pro, pu, 1));
 		size_t pu2 = (size_t)pu / 2;
 		size_t* p1 = pro + pu2 / sizeof (size_t);
-		heap_.release (p1, pu2);
+		heap ().release (p1, pu2);
 		cb = pu2;
-		size_t* p2 = (size_t*)heap_.allocate (p1, cb, 0);
+		size_t* p2 = (size_t*)heap ().allocate (p1, cb, 0);
 		EXPECT_EQ (cb, pu2);
 		EXPECT_EQ (p1, p2);
 		std::fill_n (p2, pu2 / sizeof (size_t), 1);
-		heap_.release (pro, pu);
+		heap ().release (pro, pu);
 	}
-	heap_.release (p, pu);
+	heap ().release (p, pu);
 }
 
 struct Block
@@ -391,17 +400,17 @@ TEST_F (TestHeap, Random)
 	static const int ITERATIONS = 10;
 	static const int ALLOC_ITERATIONS = 500;
 	for (int i = 0; i < ITERATIONS; ++i) {
-		ASSERT_NO_FATAL_FAILURE (ra.run (heap_, ALLOC_ITERATIONS, i));
+		ASSERT_NO_FATAL_FAILURE (ra.run (heap (), ALLOC_ITERATIONS, i));
 
 		AllocatedBlocks checker;
 		ASSERT_NO_FATAL_FAILURE (checker.add (ra.allocated ()));
-		ASSERT_NO_FATAL_FAILURE (checker.check (heap_));
+		ASSERT_NO_FATAL_FAILURE (checker.check (heap ()));
 	}
 
 	for (auto p = ra.allocated ().cbegin (); p != ra.allocated ().cend (); ++p) {
 		if (Block::RESERVED != p->state)
 			EXPECT_TRUE (check_readable (p->begin, p->end, p->tag));
-		heap_.release (p->begin, (p->end - p->begin) * sizeof (size_t));
+		heap ().release (p->begin, (p->end - p->begin) * sizeof (size_t));
 	}
 }
 
@@ -433,7 +442,7 @@ TEST_F (TestHeap, MultiThread)
 
 	for (int i = 0; i < ITERATIONS; ++i) {
 		for (auto p = threads.begin (); p != threads.end (); ++p)
-			p->run (heap_, THREAD_ITERATIONS, i);
+			p->run (heap (), THREAD_ITERATIONS, i);
 
 		for (auto p = threads.begin (); p != threads.end (); ++p)
 			p->join ();
@@ -442,12 +451,12 @@ TEST_F (TestHeap, MultiThread)
 		for (auto pt = threads.begin (); pt != threads.end (); ++pt)
 			ASSERT_NO_FATAL_FAILURE (checker.add (pt->allocated ()));
 
-		ASSERT_NO_FATAL_FAILURE (checker.check (heap_));
+		ASSERT_NO_FATAL_FAILURE (checker.check (heap ()));
 	}
 
 	for (auto pt = threads.begin (); pt != threads.end (); ++pt) {
 		for (auto p = pt->allocated ().cbegin (); p != pt->allocated ().cend (); ++p)
-			heap_.release (p->begin, (p->end - p->begin) * sizeof (size_t));
+			heap ().release (p->begin, (p->end - p->begin) * sizeof (size_t));
 	}
 }
 
@@ -481,12 +490,12 @@ TEST_F (TestHeap, MultiThreadCopy)
 	const unsigned thread_count = std::thread::hardware_concurrency ();
 	const int iterations = 100;
 
-	size_t block_size = (size_t)heap_.query (nullptr, Memory::QueryParam::SHARING_ASSOCIATIVITY);
+	size_t block_size = (size_t)heap ().query (nullptr, Memory::QueryParam::SHARING_ASSOCIATIVITY);
 	size_t cb = block_size;
-	uint8_t* src = (uint8_t*)heap_.allocate (nullptr, cb, 0);
+	uint8_t* src = (uint8_t*)heap ().allocate (nullptr, cb, 0);
 	EXPECT_EQ (block_size, cb);
 	cb = block_size * thread_count;
-	uint8_t* dst = (uint8_t*)heap_.allocate (nullptr, cb, Memory::RESERVED);
+	uint8_t* dst = (uint8_t*)heap ().allocate (nullptr, cb, Memory::RESERVED);
 	size_t thr_size = block_size / thread_count;
 	std::vector <std::thread> threads;
 	threads.reserve (thread_count);
@@ -494,7 +503,7 @@ TEST_F (TestHeap, MultiThreadCopy)
 	for (unsigned i = 0; i < thread_count; ++i) {
 		uint8_t* ts = src + thr_size * i;
 		uint8_t* td = dst + (block_size + thr_size) * i;
-		threads.push_back (std::thread (write_copy, std::ref (heap_), ts, td, thr_size, iterations));
+		threads.push_back (std::thread (write_copy, std::ref (heap ()), ts, td, thr_size, iterations));
 	}
 
 	for (auto p = threads.begin (); p != threads.end (); ++p)
@@ -503,11 +512,11 @@ TEST_F (TestHeap, MultiThreadCopy)
 	for (size_t i = 0; i < thread_count; ++i) {
 		uint8_t* ts = src + thr_size * i;
 		uint8_t* td = dst + (block_size + thr_size) * i;
-		write_copy (heap_, ts, td, thr_size, iterations);
+		write_copy (heap (), ts, td, thr_size, iterations);
 	}
 */
-	heap_.release (src, block_size);
-	heap_.release (dst, block_size * thread_count);
+	heap ().release (src, block_size);
+	heap ().release (dst, block_size * thread_count);
 }
 
 TEST_F (TestHeap, Allocator)
@@ -527,7 +536,7 @@ TEST_F (TestHeap, HeapAllocator)
 {
 	typedef std::vector <int, HeapAllocator <int> > Cont;
 	{
-		Cont cont (heap_);
+		Cont cont (heap ());
 		cont.push_back (1);
 		cont.push_back (2);
 		cont.push_back (3);
@@ -541,21 +550,21 @@ TEST_F (TestHeap, HeapAllocator)
 TEST_F (TestHeap, Cleanup)
 {
 	size_t cb = sizeof (size_t);
-	size_t* p = (size_t*)heap_.allocate (nullptr, cb, 0);
-	EXPECT_FALSE (heap_.cleanup (false));
-	EXPECT_TRUE (heap_.cleanup (false));
+	size_t* p = (size_t*)heap ().allocate (nullptr, cb, 0);
+	EXPECT_FALSE (heap ().cleanup (false));
+	EXPECT_TRUE (heap ().cleanup (false));
 }
 
 TEST_F (TestHeap, ChangeProtection)
 {
 	size_t cb = sizeof (size_t);
-	size_t* p = (size_t*)heap_.allocate (nullptr, cb, 0);
+	size_t* p = (size_t*)heap ().allocate (nullptr, cb, 0);
 	cb = 0x20000;
-	void* p1 = heap_.allocate (nullptr, cb, 0);
-	heap_.change_protection (true);
-	heap_.change_protection (false);
-	heap_.release (p1, cb);
-	heap_.release (p, sizeof (size_t));
+	void* p1 = heap ().allocate (nullptr, cb, 0);
+	heap ().change_protection (true);
+	heap ().change_protection (false);
+	heap ().release (p1, cb);
+	heap ().release (p, sizeof (size_t));
 }
 
 }

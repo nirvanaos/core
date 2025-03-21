@@ -29,10 +29,11 @@
 #pragma once
 
 #include "HeapDirectory.h"
-#include <Port/config.h>
 #include "SkipList.h"
 #include "CoreInterface.h"
 #include "StaticallyAllocated.h"
+#include <atomic>
+#include <Port/config.h>
 
 #define DEFINE_ALLOCATOR(Name) template <class U> operator const Name <U>& () const \
 noexcept { return *reinterpret_cast <const Name <U>*> (this); }\
@@ -144,11 +145,10 @@ public:
 	static Heap& user_heap ();
 
 	/// Global class initialization.
-	/// Place
-	inline static bool initialize () noexcept;
+	static bool initialize () noexcept;
 	
 	/// Global class temination.
-	inline static void terminate () noexcept;
+	static void terminate () noexcept;
 
 protected:
 	Heap (size_t allocation_unit = HEAP_UNIT_DEFAULT, bool system = false) noexcept;
@@ -279,8 +279,6 @@ protected:
 
 		NodeVal* insert_partition (Heap& heap, Directory& part) noexcept;
 		void release_partition (Heap& heap, NodeVal* node) noexcept;
-
-		NodeVal* next (NodeVal* cur) noexcept;
 	};
 
 	static size_t partition_size (size_t allocation_unit)
@@ -382,24 +380,6 @@ inline Heap& Heap::shared_heap () noexcept
 		return shared_heap_;
 	else
 		return core_heap_;
-}
-
-inline bool Heap::initialize () noexcept
-{
-	if (!Port::Memory::initialize ())
-		return false;
-	core_heap_.construct (HEAP_UNIT_CORE, true);
-	if (sizeof (void*) > 2)
-		shared_heap_.construct (HEAP_UNIT_DEFAULT, true);
-	return true;
-}
-
-inline void Heap::terminate () noexcept
-{
-	if (sizeof (void*) > 2)
-		shared_heap_.destruct ();
-	core_heap_.destruct ();
-	Port::Memory::terminate ();
 }
 
 }

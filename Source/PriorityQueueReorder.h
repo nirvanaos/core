@@ -30,6 +30,7 @@
 #pragma once
 
 #include "SkipList.h"
+#include "Heap.h"
 
 namespace Nirvana {
 namespace Core {
@@ -79,6 +80,10 @@ class PriorityQueueReorder :
 public:
 	typedef typename Base::NodeVal NodeVal;
 	typedef typename Base::Value Value;
+
+	PriorityQueueReorder () :
+		Base (Heap::core_heap ())
+	{}
 
 	~PriorityQueueReorder ()
 	{
