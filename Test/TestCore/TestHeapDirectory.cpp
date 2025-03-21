@@ -225,6 +225,15 @@ TYPED_TEST (TestHeapDirectory, Release2)
 	}
 }
 
+TYPED_TEST (TestHeapDirectory, Reset)
+{
+	EXPECT_TRUE (this->directory_->empty ());
+	this->directory_->allocate (1);
+	EXPECT_TRUE (!this->directory_->empty ());
+	this->directory_->reset ();
+	EXPECT_TRUE (this->directory_->empty ());
+}
+
 struct Block
 {
 	unsigned begin;

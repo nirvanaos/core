@@ -46,7 +46,7 @@ bool MemContext::is_current (const MemContext* context) noexcept
 
 Ref <Heap> MemContext::create_heap ()
 {
-	return sizeof (void*) > 2 ? Ref <Heap>::create <ImplDynamic <HeapUser> > () :
+	return sizeof (void*) > 2 ? Ref <Heap>::create <ImplDynamic <Heap> > () :
 		Ref <Heap> (&Heap::shared_heap ());
 }
 

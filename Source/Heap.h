@@ -41,9 +41,6 @@ template <class U> struct rebind { typedef Name <U> other; }
 namespace Nirvana {
 namespace Core {
 
-class HeapCore;
-class HeapUser;
-
 /// \brief Heap implementation.
 ///
 /// The Heap is lock-free object and can be shared a number of threads.
@@ -118,6 +115,24 @@ public:
 	/// On exception, memory block will be released, then exception rethrown.
 	void add_large_block (void* p, size_t size);
 
+	/// \brief Releases all memory.
+	/// 
+	/// \param final If `false`, keep the first partition.
+	/// \returns `true` if no memory leaks.
+	bool cleanup (bool final) noexcept;
+
+	/* Unused. Kept just for case.
+	Heap& operator = (Heap&& other) noexcept
+	{
+		cleanup (true);
+		allocation_unit_ = other.allocation_unit_;
+		part_list_ = other.part_list_;
+		other.part_list_ = nullptr;
+		block_list_ = std::move (other.block_list_);
+		return *this;
+	}
+	*/
+
 	/// Returns core heap.
 	static Heap& core_heap () noexcept;
 
@@ -137,16 +152,26 @@ public:
 
 protected:
 	Heap (size_t allocation_unit = HEAP_UNIT_DEFAULT, bool do_not_decommit = false) noexcept;
+	
+	~Heap ()
+	{
+		cleanup (true);
+	}
 
 	typedef HeapDirectory <HEAP_DIRECTORY_SIZE, HEAP_DIRECTORY_LEVELS,
 		(Port::Memory::FLAGS & Memory::SPACE_RESERVATION) ?
 		HeapDirectoryImpl::COMMITTED_BITMAP : HeapDirectoryImpl::PLAIN_MEMORY> Directory;
+
+	class MemoryBlock;
+	using AtomicBlockPtr = std::atomic <MemoryBlock*>;
 	
 	// MemoryBlock represents the heap partition or large memory block allocated from the main memory service.
 	class MemoryBlock
 	{
 	public:
-		MemoryBlock () noexcept
+		MemoryBlock () noexcept :
+			begin_ (nullptr),
+			next_partition_ (nullptr)
 		{}
 
 		MemoryBlock (const void* p) noexcept :
@@ -162,8 +187,8 @@ protected:
 			assert (!(size & 1));
 		}
 
-		MemoryBlock (Directory* part) noexcept :
-			begin_ ((uint8_t*)(part + 1)),
+		MemoryBlock (Directory& part) noexcept :
+			begin_ ((uint8_t*)(&part + 1)),
 			next_partition_ (nullptr)
 		{}
 
@@ -190,10 +215,10 @@ protected:
 			return *(Directory*)(begin_ - sizeof (Directory));
 		}
 
-		MemoryBlock*& next_partition () noexcept
+		AtomicBlockPtr& next_partition () noexcept
 		{
 			assert (!is_large_block ());
-			return next_partition_;
+			return (AtomicBlockPtr&)next_partition_;
 		}
 
 		// Blocks are sorted in descending order.
@@ -214,7 +239,6 @@ protected:
 		}
 
 		bool collapse_large_block (size_t size) noexcept;
-
 		void restore_large_block (size_t size) noexcept;
 
 	private:
@@ -222,7 +246,7 @@ protected:
 		// For the heap partition it is pointer to memory space immediately after heap directory.
 		uint8_t* begin_;
 
-		union
+		union alignas (AtomicBlockPtr)
 		{
 			MemoryBlock* next_partition_;
 			volatile size_t large_block_size_;
@@ -232,7 +256,12 @@ protected:
 	class BlockList : public SkipList <MemoryBlock, HEAP_SKIP_LIST_LEVELS>
 	{
 		typedef SkipList <MemoryBlock, HEAP_SKIP_LIST_LEVELS> Base;
+
 	public:
+		BlockList (Heap& heap) :
+			Base (heap)
+		{}
+
 		void insert (NodeVal*& node)
 		{
 			auto ins = Base::insert (node);
@@ -248,34 +277,10 @@ protected:
 			release_node (ins.first);
 		}
 
-		NodeVal* insert (Directory* part)
-		{
-			auto ins = Base::insert (part);
-			assert (ins.second);
-			return ins.first;
-		}
+		NodeVal* insert_partition (Directory& part, size_t allocation_unit) noexcept;
+		void release_partition (Heap& heap, NodeVal* node) noexcept;
 
-		NodeVal* insert (Directory* part, size_t allocation_unit) noexcept
-		{
-			unsigned level = Base::random_level ();
-			size_t cb = Base::node_size (level);
-			auto ins = Base::insert (new (Heap::allocate (*part, cb, 0, allocation_unit)) NodeVal (level, part));
-			assert (ins.second);
-#ifndef NDEBUG
-			node_cnt_.increment ();
-#endif
-			return ins.first;
-		}
-
-		NodeVal* head () const noexcept
-		{
-			return static_cast <NodeVal*> (Base::head ());
-		}
-
-		NodeVal* tail () const noexcept
-		{
-			return static_cast <NodeVal*> (Base::tail ());
-		}
+		NodeVal* next (NodeVal* cur) noexcept;
 	};
 
 	static size_t partition_size (size_t allocation_unit)
@@ -288,12 +293,8 @@ protected:
 		return partition_size (allocation_unit_);
 	}
 
-	Directory* create_partition () const;
-
-	void release_partition (Directory* dir)
-	{
-		Port::Memory::release (dir, sizeof (Directory) + partition_size (allocation_unit_));
-	}
+	Directory& create_partition () const;
+	void release_partition (Directory& dir) const noexcept;
 
 	Directory* get_partition (const void* p) noexcept;
 
@@ -310,31 +311,20 @@ protected:
 
 	void release (Directory& part, void* p, size_t size) const;
 
-	virtual MemoryBlock* add_new_partition (MemoryBlock*& tail);
+	MemoryBlock* add_new_partition (AtomicBlockPtr& tail);
 
 	/// \summary Atomically erase large block information from the block list.
 	class LBErase;
 
-protected:
-	size_t allocation_unit_;
-	MemoryBlock* part_list_;
+private:
+	AtomicBlockPtr part_list_;
 	BlockList block_list_;
+	size_t allocation_unit_;
 	bool do_not_decommit_;
 
 private:
-	static StaticallyAllocated <ImplStatic <HeapCore> > core_heap_;
-	static StaticallyAllocated <ImplStatic <HeapUser> > shared_heap_;
-};
-
-class HeapCore : public Heap
-{
-public:
-	HeapCore () :
-		Heap (HEAP_UNIT_CORE, true)
-	{}
-
-private:
-	virtual MemoryBlock* add_new_partition (MemoryBlock*& tail);
+	static StaticallyAllocated <ImplStatic <Heap> > core_heap_;
+	static StaticallyAllocated <ImplStatic <Heap> > shared_heap_;
 };
 
 /// Object allocated from the core heap.
@@ -387,39 +377,6 @@ public:
 	{}
 };
 
-/// User-mode heap.
-class HeapUser :
-	public Heap,
-	public CoreObject // Must be created quickly
-{
-public:
-	HeapUser (size_t allocation_unit = HEAP_UNIT_DEFAULT) :
-		Heap (allocation_unit)
-	{}
-
-	~HeapUser ()
-	{
-		cleanup ();
-		// TODO: Log message if memory leaks detected.
-	}
-
-	/// \brief Releases all memory.
-	/// \returns `true` if no memory leaks.
-	bool cleanup ();
-
-	/* Unused. Kept just for case.
-	HeapUser& operator = (HeapUser&& other) noexcept
-	{
-		cleanup ();
-		allocation_unit_ = other.allocation_unit_;
-		part_list_ = other.part_list_;
-		other.part_list_ = nullptr;
-		block_list_ = std::move (other.block_list_);
-		return *this;
-	}
-	*/
-};
-
 inline Heap& Heap::core_heap () noexcept
 {
 	return core_heap_;
@@ -437,9 +394,9 @@ inline bool Heap::initialize () noexcept
 {
 	if (!Port::Memory::initialize ())
 		return false;
-	core_heap_.construct ();
+	core_heap_.construct (HEAP_UNIT_CORE, true);
 	if (sizeof (void*) > 2)
-		shared_heap_.construct ();
+		shared_heap_.construct (HEAP_UNIT_DEFAULT, true);
 	return true;
 }
 

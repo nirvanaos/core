@@ -37,7 +37,7 @@ namespace Nirvana {
 namespace Core {
 
 class HeapCustom :
-	public HeapUser,
+	public Heap,
 	public CORBA::servant_traits <Nirvana::Memory>::Servant <HeapCustom>,
 	public CORBA::Internal::LifeCycleRefCnt <HeapCustom>,
 	public CORBA::Internal::RefCountBase <HeapCustom>,
@@ -57,7 +57,7 @@ public:
 	}
 
 	HeapCustom (size_t allocation_unit) :
-		HeapUser (allocation_unit)
+		Heap (allocation_unit)
 	{}
 
 private:

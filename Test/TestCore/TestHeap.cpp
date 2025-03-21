@@ -58,7 +58,6 @@ protected:
 		// before each test).
 		SystemInfo::initialize ();
 		ASSERT_TRUE (Heap::initialize ());
-		EXPECT_TRUE (heap_.cleanup ());
 		Chrono::initialize ();
 	}
 
@@ -66,14 +65,14 @@ protected:
 	{
 		// Code here will be called immediately after each test (right
 		// before the destructor).
-		EXPECT_TRUE (heap_.cleanup ());
+		EXPECT_TRUE (heap_.cleanup (true));
 		Chrono::terminate ();
 		Heap::terminate ();
 		SystemInfo::terminate ();
 	}
 
 protected:
-	ImplStatic <HeapUser> heap_;
+	ImplStatic <Heap> heap_;
 };
 
 bool check_readable (const size_t* begin, const size_t* end, size_t tag)
@@ -144,7 +143,7 @@ TEST_F (TestHeap, LargeBlock)
 			end = blocks [i] + BLOCK_SIZE;
 		}
 		heap_.release (p, end - p);
-		EXPECT_TRUE (heap_.cleanup ());
+		EXPECT_TRUE (heap_.cleanup (false));
 	}
 
 	// Allocate large block and release smaller blocks from begin to end
@@ -155,7 +154,7 @@ TEST_F (TestHeap, LargeBlock)
 		for (unsigned i = 0; i < bc_max; ++i) {
 			heap_.release (p + BLOCK_SIZE * i, BLOCK_SIZE);
 		}
-		EXPECT_TRUE (heap_.cleanup ());
+		EXPECT_TRUE (heap_.cleanup (false));
 	}
 
 	// Allocate large block and release smaller blocks from end to begin
@@ -166,7 +165,7 @@ TEST_F (TestHeap, LargeBlock)
 		for (int i = bc_max - 1; i >= 0; --i) {
 			heap_.release (p + BLOCK_SIZE * i, BLOCK_SIZE);
 		}
-		EXPECT_TRUE (heap_.cleanup ());
+		EXPECT_TRUE (heap_.cleanup (false));
 	}
 
 	// Allocate large block and release smaller blocks even and odd
@@ -180,7 +179,7 @@ TEST_F (TestHeap, LargeBlock)
 		for (int i = 0; i < bc_max; i += 2) {
 			heap_.release (p + BLOCK_SIZE * i, BLOCK_SIZE);
 		}
-		EXPECT_TRUE (heap_.cleanup ());
+		EXPECT_TRUE (heap_.cleanup (false));
 	}
 }
 
@@ -208,6 +207,15 @@ TEST_F (TestHeap, ReadOnly)
 		heap_.release (pro, pu);
 	}
 	heap_.release (p, pu);
+}
+
+TEST_F (TestHeap, Cleanup)
+{
+	size_t cb = sizeof (size_t);
+	size_t* p = (size_t*)heap_.allocate (nullptr, cb, 0);
+	EXPECT_FALSE (heap_.cleanup (false));
+	EXPECT_TRUE (heap_.cleanup (false));
+	EXPECT_TRUE (heap_.cleanup (true));
 }
 
 struct Block

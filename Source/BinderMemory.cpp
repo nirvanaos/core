@@ -29,7 +29,7 @@
 namespace Nirvana {
 namespace Core {
 
-StaticallyAllocated <ImplStatic <HeapUser> > BinderMemory::heap_;
+StaticallyAllocated <ImplStatic <Heap> > BinderMemory::heap_;
 
 }
 }

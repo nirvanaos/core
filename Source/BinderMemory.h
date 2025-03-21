@@ -85,7 +85,7 @@ public:
 	}
 
 private:
-	static StaticallyAllocated <ImplStatic <HeapUser> > heap_;
+	static StaticallyAllocated <ImplStatic <Heap> > heap_;
 };
 
 }

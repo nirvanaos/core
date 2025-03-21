@@ -284,8 +284,10 @@ public:
 	{
 		if (IMPLEMENTATION == HeapDirectoryImpl::COMMITTED_BITMAP)
 			Port::Memory::commit (this, sizeof (*this));
+		/* Old stuff
 		else if (IMPLEMENTATION != HeapDirectoryImpl::PLAIN_MEMORY) // Commit initial part.
 			Port::Memory::commit (this, reinterpret_cast <uint8_t*> (bitmap_ + Traits::TOP_BITMAP_WORDS) - reinterpret_cast <uint8_t*> (this));
+		*/
 
 		// Initialize
 		assert (sizeof (HeapDirectory <DIRECTORY_SIZE, HEAP_LEVELS, IMPL>) <= DIRECTORY_SIZE);
@@ -297,7 +299,18 @@ public:
 		free_block_count_ [Traits::FREE_BLOCK_INDEX_SIZE - 1] = Traits::TOP_LEVEL_BLOCKS;
 
 		// Initialize top level of bitmap by ones.
-		::std::fill_n (bitmap_, Traits::TOP_BITMAP_WORDS, ~(BitmapWord)0);
+		std::fill_n (bitmap_, Traits::TOP_BITMAP_WORDS, ~(BitmapWord)0);
+	}
+
+	/// \brief Reset to the empty state
+	void reset ()
+	{
+		std::fill (bitmap_, bitmap_ + Traits::TOP_BITMAP_WORDS, ~(BitmapWord)0);
+		std::fill (bitmap_ + Traits::TOP_BITMAP_WORDS, bitmap_ + Traits::BITMAP_SIZE, 0);
+		std::fill_n (free_block_count_, Traits::FREE_BLOCK_INDEX_SIZE - 1, 0);
+		free_block_count_ [Traits::FREE_BLOCK_INDEX_SIZE - 1] = Traits::TOP_LEVEL_BLOCKS;
+
+		assert (empty ());
 	}
 
 	/// \brief Allocate block.
@@ -364,7 +377,7 @@ private:
 	static unsigned level_align (size_t offset, size_t size) noexcept
 	{
 		// Ищем максимальный размер блока <= size, на который выравнен offset
-		unsigned level = Traits::HEAP_LEVELS - 1 - ::std::min (ntz (offset | Traits::MAX_BLOCK_SIZE), ilog2_floor (size));
+		unsigned level = Traits::HEAP_LEVELS - 1 - std::min (ntz (offset | Traits::MAX_BLOCK_SIZE), ilog2_floor (size));
 		assert (level < Traits::HEAP_LEVELS);
 
 #ifndef NDEBUG
@@ -513,7 +526,7 @@ ptrdiff_t HeapDirectory <DIRECTORY_SIZE, HEAP_LEVELS, IMPL>::allocate (size_t si
 		} else {
 			// Levels not merged: find as usual.
 			BitmapWord* begin = bitmap_ptr = bitmap_ + bi.bitmap_offset;
-			BitmapWord* end = begin + ::std::min ((size_t)Traits::TOP_LEVEL_BLOCKS << bi.level, (size_t)0x10000) / (sizeof (BitmapWord) * 8);
+			BitmapWord* end = begin + std::min ((size_t)Traits::TOP_LEVEL_BLOCKS << bi.level, (size_t)0x10000) / (sizeof (BitmapWord) * 8);
 
 			while ((bit_number = Ops::clear_rightmost_one (bitmap_ptr)) < 0)
 				if (++bitmap_ptr == end)

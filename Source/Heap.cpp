@@ -31,8 +31,8 @@
 namespace Nirvana {
 namespace Core {
 
-StaticallyAllocated <ImplStatic <HeapCore> > Heap::core_heap_;
-StaticallyAllocated <ImplStatic <HeapUser> > Heap::shared_heap_;
+StaticallyAllocated <ImplStatic <Heap> > Heap::core_heap_;
+StaticallyAllocated <ImplStatic <Heap> > Heap::shared_heap_;
 
 Heap& Heap::user_heap ()
 {
@@ -84,7 +84,6 @@ private:
 	BlockList::NodeVal* new_node_;
 	size_t shrink_size_;
 };
-
 
 inline
 bool Heap::MemoryBlock::collapse_large_block (size_t size) noexcept
@@ -215,8 +214,9 @@ void Heap::LBErase::rollback_helper () noexcept
 }
 
 Heap::Heap (size_t allocation_unit, bool do_not_decommit) noexcept :
-	allocation_unit_ (allocation_unit),
 	part_list_ (nullptr),
+	block_list_ (*this),
+	allocation_unit_ (allocation_unit),
 	do_not_decommit_ (do_not_decommit)
 {
 	if (allocation_unit <= HEAP_UNIT_MIN)
@@ -378,14 +378,15 @@ void* Heap::allocate (size_t& size, unsigned flags)
 		add_large_block (p, size);
 	} else {
 		try {
-			MemoryBlock** link = &part_list_;
+			AtomicBlockPtr* link = &part_list_;
+			MemoryBlock* part = link->load (std::memory_order_acquire);
 			for (;;) {
-				MemoryBlock* part = *link;
 				if (part) {
 					void* p = allocate (part->directory (), size, flags);
 					if (p)
 						return p;
 					link = &part->next_partition ();
+					part = link->load (std::memory_order_acquire);
 				} else
 					part = add_new_partition (*link);
 			}
@@ -464,63 +465,42 @@ void* Heap::allocate (Directory& part, void* p, size_t& size, unsigned flags) co
 	return nullptr;
 }
 
-Heap::MemoryBlock* Heap::add_new_partition (MemoryBlock*& tail)
+inline Heap::MemoryBlock* Heap::add_new_partition (AtomicBlockPtr& tail)
 {
-	Directory* dir = create_partition ();
-	BlockList::NodeVal* node;
-	try {
-		node = block_list_.insert (dir);
-	} catch (...) {
-		release_partition (dir);
-		throw;
-	}
+	// Avoid recursion.
+	// The block list node is allocated from the new partition.
+	Directory& dir = create_partition ();
+	BlockList::NodeVal* node = block_list_.insert_partition (dir, allocation_unit_);
 	MemoryBlock* part = &node->value ();
 	MemoryBlock* next = nullptr;
-	if (!std::atomic_compare_exchange_strong ((volatile std::atomic <MemoryBlock*>*)&tail, &next, part)) {
+	MemoryBlock* ret = part;
+	if (!tail.compare_exchange_strong (next, part)) {
 		// New partition was already added in another thread.
-		part = next;
+		if (ret == part)
+			ret = next; // Return the first new partition added.
 		block_list_.remove (node);
+		block_list_.release_partition (*this, node);
 		release_partition (dir);
 	}
-	block_list_.release_node (node);
-	return part;
+	return ret;
 }
 
-Heap::Directory* Heap::create_partition () const
+inline
+Heap::Directory& Heap::create_partition () const
 {
 	size_t cb = sizeof (Directory) + partition_size (allocation_unit_);
 	void* p = Port::Memory::allocate (nullptr, cb, Memory::RESERVED);
 	try {
-		return new (p) Directory ();
+		return *new (p) Directory ();
 	} catch (...) {
 		Port::Memory::release (p, cb);
 		throw;
 	}
 }
 
-Heap::MemoryBlock* HeapCore::add_new_partition (MemoryBlock*& tail)
+void Heap::release_partition (Directory& dir) const noexcept
 {
-	// Core heap has different algorithm to avoid recursion.
-	// The block list node is allocated from the new partition.
-	Directory* dir = create_partition ();
-	BlockList::NodeVal* node = block_list_.insert (dir, allocation_unit_);
-	MemoryBlock* part = &node->value ();
-	MemoryBlock** link = &tail;
-	MemoryBlock* next = nullptr;
-	MemoryBlock* ret = part;
-	while (!std::atomic_compare_exchange_weak ((volatile std::atomic <MemoryBlock*>*)link, &next, part)) {
-		// New partition was already added in another thread.
-		if (ret == part)
-			ret = next; // Return the first new partition added.
-		// We can not remove the node from list and release partition here.
-		// In the skip list algorithm we can not predict when the node will be really destroyed.
-		// So we can not release the partition right now.
-		// We repeat the linking.
-		link = &next->next_partition ();
-		next = nullptr;
-	}
-	block_list_.release_node (node);
-	return ret;
+	Port::Memory::release (&dir, sizeof (Directory) + partition_size (allocation_unit_));
 }
 
 void* Heap::copy (void* dst, void* src, size_t& size, unsigned flags)
@@ -795,11 +775,8 @@ bool Heap::check_owner (const void* p, size_t size)
 void Heap::change_protection (bool read_only)
 {
 	unsigned short protection = read_only ? (Memory::READ_ONLY | Memory::EXACTLY) : (Memory::READ_WRITE | Memory::EXACTLY);
-	BlockList::NodeVal* p = block_list_.head ();
-	for (;;) {
-		p = static_cast <BlockList::NodeVal*> (static_cast <BlockList::Node*> (p->next [0].load ()));
-		if (p == block_list_.tail ())
-			break;
+	
+	for (BlockList::NodeVal* p = block_list_.get_min_node (); p ; p = block_list_.next (p)) {
 		const MemoryBlock& mb = p->value ();
 		uint8_t* begin = mb.begin ();
 		uint8_t* end = begin + (mb.is_large_block () ? mb.large_block_size () : partition_size ());
@@ -823,24 +800,99 @@ void Heap::change_protection (bool read_only)
 	}
 }
 
-bool HeapUser::cleanup ()
+bool Heap::cleanup (bool final) noexcept
 {
 	bool empty = true;
-	part_list_ = nullptr;
+
+	// Clear large blocks
+	for (BlockList::NodeVal* node = block_list_.get_min_node (); node;) {
+		const MemoryBlock& block = node->value ();
+		if (block.is_large_block ()) {
+			empty = false;
+			Port::Memory::release (block.begin (), block.large_block_size ());
+			BlockList::copy_node (node);
+			BlockList::NodeVal* next = block_list_.next (node);
+			block_list_.remove (node);
+			block_list_.release_node (node);
+			node = next;
+		} else
+			node = block_list_.next (node);
+	}
+
+	// Clear partitions. Keep one if not final.
+	Directory* keep_dir = nullptr;
+
 	while (BlockList::NodeVal* node = block_list_.delete_min ()) {
 		const MemoryBlock block = node->value ();
-		block_list_.release_node (node);
-		if (block.is_large_block ()) {
-			Port::Memory::release (block.begin (), block.large_block_size ());
-			empty = false;
-		} else {
-			Directory& dir = block.directory ();
+		block_list_.release_partition (*this, node);
+		assert (!block.is_large_block ());
+		Directory& dir = block.directory ();
+		if (!keep_dir && !final)
+			keep_dir = &dir;
+		else {
 			if (!dir.empty ())
 				empty = false;
-			Port::Memory::release (&dir, sizeof (Directory) + partition_size ());
+			release_partition (dir);
 		}
 	}
+
+	part_list_ = nullptr;
+	assert (block_list_.empty ());
+
+	if (keep_dir) {
+		assert (!final);
+
+		if (!keep_dir->empty ()) {
+			empty = false;
+			keep_dir->reset ();
+			if (!do_not_decommit_)
+				Port::Memory::decommit ((keep_dir + 1), partition_size ());
+		}
+
+		BlockList::NodeVal* node = block_list_.insert_partition (*keep_dir, allocation_unit_);
+		part_list_ = &node->value ();
+	}
+
 	return empty;
+}
+
+Heap::BlockList::NodeVal* Heap::BlockList::insert_partition (Directory& part,
+	size_t allocation_unit) noexcept
+{
+	unsigned level = Base::random_level ();
+	size_t cb = Base::node_size (level);
+	auto ins = Base::insert (new (Heap::allocate (part, cb, 0, allocation_unit))
+		NodeVal (level, std::ref (part)));
+	assert (ins.second);
+#ifndef NDEBUG
+	node_cnt_.increment ();
+#endif
+	return ins.first;
+}
+
+void Heap::BlockList::release_partition (Heap& heap, NodeVal* node) noexcept
+{
+	assert (node->deleted);
+	Directory& part = node->value ().directory ();
+	heap.release (part, node, Base::node_size (node->level));
+#ifndef NDEBUG
+	node_cnt_.decrement ();
+#endif
+}
+
+Heap::BlockList::NodeVal* Heap::BlockList::next (NodeVal* cur) noexcept
+{
+	if (cur) {
+		Node* next = copy_node (cur->next [0].lock ());
+		cur->next [0].unlock ();
+		release_node (cur);
+		if (next == tail ()) {
+			release_node (next);
+			return nullptr;
+		}
+		return static_cast <NodeVal*> (next);
+	} else
+		return nullptr;
 }
 
 }
