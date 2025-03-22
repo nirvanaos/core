@@ -200,10 +200,7 @@ private:
 	static Ref <MemContext> create (Ref <Heap>&& heap, bool class_library_init, bool core_context);
 
 	~MemContext ();
-	void destroy (ExecDomain& cur_ed) noexcept;
-
 	MemContext (Ref <Heap>&& heap, bool class_library_init, bool core_context) noexcept;
-
 	MemContext (const MemContext&) = delete;
 
 	MemContext& operator = (const MemContext&) = delete;
@@ -421,8 +418,6 @@ private:
 	typedef std::conditional <sizeof (void*) < 8, DataHolder32, DataHolder64>::type DataHolder;
 
 	class Replacer;
-
-	class Deleter;
 
 private:
 	Ref <Heap> heap_;

@@ -1,3 +1,4 @@
+/// \file
 /*
 * Nirvana Core.
 *
@@ -5,7 +6,7 @@
 *
 * Author: Igor Popov
 *
-* Copyright (c) 2021 Igor Popov.
+* Copyright (c) 2025 Igor Popov.
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU Lesser General Public License as published by
@@ -34,16 +35,21 @@ namespace Core {
 
 class Thread;
 
+/// @brief Executor is interface that queued to a scheduler
+/// and then called to do some work.
 class NIRVANA_NOVTABLE Executor
 {
 	DECLARE_CORE_INTERFACE
 
 public:
-	virtual void execute (Thread& worker) noexcept = 0;
+	/// @brief Called from the worker thread.
+	/// 
+	/// @param worker The worker.
+	/// @param holder Smart reference to the Executor itself.
+	virtual void execute (Thread& worker, Ref <Executor> holder) noexcept = 0;
 };
 
 }
 }
 
 #endif
-

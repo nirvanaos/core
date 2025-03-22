@@ -129,7 +129,7 @@ public:
 
 	/// Executor::execute ()
 	/// Called from worker thread.
-	void execute (Thread& worker) noexcept override;
+	void execute (Thread& worker, Ref <Executor> holder) noexcept override;
 
 	/// \returns Domain memory context.
 	MemContext& mem_context () const noexcept
@@ -178,10 +178,13 @@ private:
 
 	Ref <MemContext> mem_context_;
 	Queue queue_;
-	ExecDomain* executing_domain_;
 	std::atomic <State> state_;
 	AtomicCounter <false> activity_cnt_;
 	std::atomic <bool> need_schedule_;
+
+#ifndef NDEBUG
+	ExecDomain* executing_domain_;
+#endif
 };
 
 inline SyncDomain* SyncContext::sync_domain () noexcept

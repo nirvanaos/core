@@ -283,22 +283,7 @@ public:
 		sync_context_ = &sync_context;
 	}
 
-	SyncDomain* execution_sync_domain () const noexcept
-	{
-		return execution_sync_domain_;
-	}
-
-	void leave_sync_domain () noexcept
-	{
-		if (execution_sync_domain_)
-			execution_sync_domain_->leave ();
-	}
-
-	void on_leave_sync_domain () noexcept
-	{
-		assert (execution_sync_domain_);
-		execution_sync_domain_ = nullptr;
-	}
+	void leave_sync_domain () noexcept;
 
 	void on_enter_sync_domain (SyncDomain& sd) noexcept
 	{
@@ -453,12 +438,12 @@ public:
 
 	/// Executor::execute ()
 	/// Called from worker thread.
-	void execute (Thread& worker) noexcept override;
+	void execute (Thread& worker, Ref <Executor> holder) noexcept override;
 
-	void execute (Thread& worker, SyncDomain& sd) noexcept
+	void execute (Thread& worker, Ref <Executor> holder, Ref <SyncDomain> sd) noexcept
 	{
-		execution_sync_domain_ = &sd;
-		execute (worker);
+		execution_sync_domain_ = std::move (sd);
+		execute (worker, holder);
 	}
 
 private:
@@ -597,8 +582,12 @@ private:
 	};
 
 private:
+	// Target SyncContext
 	Ref <SyncContext> sync_context_;
-	SyncDomain* execution_sync_domain_;
+
+	// Current execution SyncDomain. Can be != sync_context_.
+	Ref <SyncDomain> execution_sync_domain_;
+
 	SyncDomain::QueueNode* ret_qnodes_;
 
 	PreallocatedStack <Ref <MemContext> > mem_context_stack_;
