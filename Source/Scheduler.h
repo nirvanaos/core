@@ -103,15 +103,15 @@ public:
 
 	/// Reserve space for an active item.
 	/// \throws CORBA::NO_MEMORY
-	static void create_item ()
+	static void create_item (bool with_reschedule)
 	{
-		Port::Scheduler::create_item ();
+		Port::Scheduler::create_item (with_reschedule);
 	}
 
 	/// Release active item space.
-	static void delete_item () noexcept
+	static void delete_item (bool with_reschedule) noexcept
 	{
-		Port::Scheduler::delete_item ();
+		Port::Scheduler::delete_item (with_reschedule);
 	}
 
 	/// \summary Schedule execution.

@@ -167,7 +167,7 @@ void ExecDomain::cleanup () noexcept
 	ret_qnodes_clear ();
 
 	if (scheduler_item_created_) {
-		Scheduler::delete_item ();
+		Scheduler::delete_item (false);
 		scheduler_item_created_ = false;
 	}
 	
@@ -261,7 +261,7 @@ void ExecDomain::schedule (Ref <SyncContext>& target, bool ret)
 			if (!ret)
 				create_background_worker ();
 		} else if (!scheduler_item_created_) {
-			Scheduler::create_item ();
+			Scheduler::create_item (false);
 			scheduler_item_created_ = true;
 		}
 	}

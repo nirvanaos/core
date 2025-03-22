@@ -51,7 +51,7 @@ SyncDomain::~SyncDomain ()
 {
 	assert (!activity_cnt_);
 	if (activity_cnt_)
-		Scheduler::delete_item ();
+		Scheduler::delete_item (true);
 }
 
 void SyncDomain::do_schedule () noexcept
@@ -174,13 +174,13 @@ SyncDomain& SyncDomain::enter ()
 void SyncDomain::activity_begin ()
 {
 	if (1 == activity_cnt_.increment_seq ())
-		Scheduler::create_item ();
+		Scheduler::create_item (true);
 }
 
 void SyncDomain::activity_end () noexcept
 {
 	if (0 == activity_cnt_.decrement_seq ())
-		Scheduler::delete_item ();
+		Scheduler::delete_item (true);
 }
 
 void SyncDomain::release_queue_node (QueueNode* node) noexcept

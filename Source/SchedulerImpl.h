@@ -55,14 +55,18 @@ public:
 		assert (queue_items_ == 0);
 	}
 
-	void create_item ()
+	void create_item (bool with_reschedule)
 	{
 		queue_.create_item ();
+		if (with_reschedule)
+			queue_.create_item ();
 	}
 
-	void delete_item () noexcept
+	void delete_item (bool with_reschedule) noexcept
 	{
 		queue_.delete_item ();
+		if (with_reschedule)
+			queue_.delete_item ();
 	}
 
 	void schedule (const DeadlineTime& deadline, const ExecutorRef& executor) noexcept
