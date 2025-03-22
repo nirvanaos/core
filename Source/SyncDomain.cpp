@@ -54,8 +54,10 @@ SyncDomain::~SyncDomain ()
 		Scheduler::delete_item (true);
 }
 
-void SyncDomain::do_schedule () noexcept
+void SyncDomain::schedule () noexcept
 {
+	need_schedule_.store (true, std::memory_order_relaxed);
+
 	while (need_schedule_.load (std::memory_order_acquire)) {
 		// Only one thread perform scheduling at a given time.
 		State state = State::IDLE;
