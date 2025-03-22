@@ -30,6 +30,8 @@
 #include "PriorityQueueReorder.h"
 #include "SkipListWithPool.h"
 #include "SystemInfo.h"
+#include <Nirvana/bitutils.h>
+#include <atomic>
 
 namespace Nirvana {
 namespace Core {
@@ -41,18 +43,31 @@ namespace Core {
 template <class T, class ExecutorRef>
 class SchedulerImpl
 {
-	typedef SkipListWithPool <PriorityQueueReorder <ExecutorRef, SKIP_LIST_DEFAULT_LEVELS> > Queue;
+	using Queue = SkipListWithPool <PriorityQueueReorder <ExecutorRef, SKIP_LIST_DEFAULT_LEVELS> >;
+
+	using Counters =
+#if ATOMIC_LLONG_LOCK_FREE
+		uint64_t;
+#elif ATOMIC_LONG_LOCK_FREE
+		uint32_t;
+#else
+		uintptr_t;
+#endif
+
 public:
 	SchedulerImpl () noexcept :
 		queue_ (SystemInfo::hardware_concurrency ()),
-		free_cores_ (SystemInfo::hardware_concurrency ()),
-		queue_items_ (0)
-	{}
+		counters_ (SystemInfo::hardware_concurrency ())
+	{
+		unsigned cores = SystemInfo::hardware_concurrency ();
+		unsigned shift = sizeof (unsigned) * 8 - nlz (cores);
+		cores_mask_ = ~(~(Counters)0 << shift);
+		queue_inc_ = (Counters)1 << shift;
+	}
 
 	~SchedulerImpl ()
 	{
-		assert (free_cores_ == SystemInfo::hardware_concurrency ());
-		assert (queue_items_ == 0);
+		assert (counters_ == SystemInfo::hardware_concurrency ());
 	}
 
 	void create_item (bool with_reschedule)
@@ -72,71 +87,66 @@ public:
 	void schedule (const DeadlineTime& deadline, const ExecutorRef& executor) noexcept
 	{
 		NIRVANA_VERIFY (queue_.insert (deadline, executor));
-		queue_items_.increment ();
-		execute_next ();
+		counters_.fetch_add (queue_inc_);
+		schedule ();
 	}
 
 	bool reschedule (const DeadlineTime& deadline, const ExecutorRef& executor, const DeadlineTime& deadline_prev) noexcept
 	{
-		if (queue_.reorder (deadline, executor, deadline_prev)) {
-			execute_next ();
-			return true;
-		}
-		return false;
+		return queue_.reorder (deadline, executor, deadline_prev);
 	}
 
-	void core_free () noexcept
-	{
-		if (execute ())
-			return;
-		free_cores_.increment ();
-		if (queue_items_.load () > 0)
-			execute_next ();
-	}
+	void core_free () noexcept;
 
 private:
-	bool execute () noexcept;
-	void execute_next () noexcept;
+	void schedule () noexcept;
 
 private:
 	Queue queue_;
-	AtomicCounter <false> free_cores_;
-	AtomicCounter <true> queue_items_;
+	std::atomic <Counters> counters_;
+	Counters cores_mask_;
+	Counters queue_inc_;
 };
 
 template <class T, class ExecutorRef>
-bool SchedulerImpl <T, ExecutorRef>::execute () noexcept
+void SchedulerImpl <T, ExecutorRef>::core_free () noexcept
 {
-	// Get first item
-	ExecutorRef val;
-	while (queue_.delete_min (val)) {
-		queue_items_.decrement ();
-		if (static_cast <T*> (this)->execute (val))
-			return true;
+	Counters cnt = counters_.load (std::memory_order_acquire);
+	for (;;) {
+		Counters cores = (cnt & cores_mask_) + 1;
+		if (cores > SystemInfo::hardware_concurrency ()) {
+			assert (false);
+			// TODO: Log
+			return;
+		}
+		Counters cnt_new = (cnt & ~cores_mask_) | cores;
+		if (counters_.compare_exchange_weak (cnt, cnt_new))
+			break;
 	}
-	return false;
+	schedule ();
 }
 
 template <class T, class ExecutorRef>
-void SchedulerImpl <T, ExecutorRef>::execute_next () noexcept
+void SchedulerImpl <T, ExecutorRef>::schedule () noexcept
 {
-	do {
-		// Acquire processor core
-		if (!free_cores_.decrement_if_not_zero ())
-			return; // All cores are busy
+	Counters cnt = counters_.load (std::memory_order_acquire);
+	for (;;) {
+		// We must have at least one item in queue and at least one free processor core
+		if (!(cnt & cores_mask_) || !(cnt & ~cores_mask_))
+			return;
 
-		// We successfully acquired the processor core
-
-		// Get item from queue
-		if (execute ())
+		// Decrement both counters as a whole
+		Counters cnt_new = cnt - queue_inc_ - 1;
+		if (counters_.compare_exchange_weak (cnt, cnt_new))
 			break;
+	}
 
-		// Queue is empty, release processor core
-		free_cores_.increment ();
-
-		// Other thread may add item to the queue but fail to acquire the core,
-		// because this thread was holded it. So we must retry if the queue is not empty.
-	} while (queue_items_.load () > 0);
+	ExecutorRef val;
+	NIRVANA_VERIFY (queue_.delete_min (val));
+	if (!static_cast <T*> (this)->execute (std::move (val))) {
+		// Error in protection domain execution, probably it is terminated.
+		core_free ();
+	}
 }
 
 }
