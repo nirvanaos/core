@@ -66,7 +66,7 @@ public:
 	// confirmation. Destruction delayed on request_latency () * DGC_IN_REQUEST_DELAY_RELEASE_MUL;
 	// Must be > 2 to let the incoming request passed to caller and then pass the DGC ping request
 	// to the object owners.
-	static const unsigned DGC_IN_REQUEST_DELAY_RELEASE_MUL = 4;
+	static const unsigned DGC_IN_REQUEST_DELAY_RELEASE_MUL = 8;
 
 	virtual Internal::IORequest::_ref_type create_request (unsigned response_flags,
 		const IOP::ObjectKey& object_key, const Internal::Operation& metadata, ReferenceRemote* ref,
