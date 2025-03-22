@@ -30,6 +30,7 @@
 #include "Chrono.h"
 #include "HeapDynamic.h"
 #include "ORB/Services.h"
+#include "ORB/RefCnt.h"
 
 namespace Nirvana {
 namespace Core {

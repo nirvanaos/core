@@ -1,4 +1,3 @@
-/// \file
 /*
 * Nirvana Core.
 *
@@ -6,7 +5,7 @@
 *
 * Author: Igor Popov
 *
-* Copyright (c) 2021 Igor Popov.
+* Copyright (c) 2025 Igor Popov.
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU Lesser General Public License as published by
@@ -24,35 +23,21 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_ORB_CORE_REFCNTPROXY_H_
-#define NIRVANA_ORB_CORE_REFCNTPROXY_H_
+#ifndef NIRVANA_ORB_CORE_VALUELIST_H_
+#define NIRVANA_ORB_CORE_VALUELIST_H_
 #pragma once
 
-#include "../AtomicCounter.h"
+#include <Nirvana/SimpleList.h>
 
 namespace CORBA {
 namespace Core {
 
-/// @brief Proxy object reference counter.
-class RefCntProxy : public Nirvana::Core::AtomicCounter <true>
+class RefCnt;
+
+class ValueList : public Nirvana::SimpleList <RefCnt>
 {
-	typedef Nirvana::Core::AtomicCounter <true> Base;
-
 public:
-	RefCntProxy (IntegralType init) noexcept :
-		Base (init)
-	{}
-
-	RefCntProxy (const RefCntProxy&) = delete;
-	RefCntProxy& operator = (const RefCntProxy&) = delete;
-
-	IntegralType decrement ();
-
-private:
-	IntegralType decrement_seq () noexcept // Prohibited, use decrement() instead
-	{
-		return Base::decrement_seq ();
-	}
+	~ValueList ();
 };
 
 }

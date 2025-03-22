@@ -37,6 +37,7 @@
 #include "CurrentDirContext.h"
 #include "UserObject.h"
 #include "LocaleImpl.h"
+#include "ORB/ValueList.h"
 #include <memory>
 
 namespace Nirvana {
@@ -188,6 +189,11 @@ public:
 	void locale (Nirvana::Locale::_ptr_type loc) noexcept
 	{
 		locale_ = loc;
+	}
+
+	CORBA::Core::ValueList& value_list () noexcept
+	{
+		return value_list_;
 	}
 
 private:
@@ -425,6 +431,7 @@ private:
 	bool core_context_;
 	DataHolder data_holder_;
 	Nirvana::Locale::_ref_type locale_;
+	CORBA::Core::ValueList value_list_;
 
 	static const DeadlineTime ASYNC_DESTROY_DEADLINE = INFINITE_DEADLINE;
 };
