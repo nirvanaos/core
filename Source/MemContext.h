@@ -200,7 +200,10 @@ private:
 	static Ref <MemContext> create (Ref <Heap>&& heap, bool class_library_init, bool core_context);
 
 	~MemContext ();
+	void destroy (ExecDomain& cur_ed) noexcept;
+
 	MemContext (Ref <Heap>&& heap, bool class_library_init, bool core_context) noexcept;
+
 	MemContext (const MemContext&) = delete;
 
 	MemContext& operator = (const MemContext&) = delete;
@@ -419,6 +422,8 @@ private:
 
 	class Replacer;
 
+	class Deleter;
+
 private:
 	Ref <Heap> heap_;
 	AtomicCounter <false> ref_cnt_;
@@ -427,8 +432,6 @@ private:
 	DataHolder data_holder_;
 	Nirvana::Locale::_ref_type locale_;
 	CORBA::Core::ValueList value_list_;
-
-	static const DeadlineTime ASYNC_DESTROY_DEADLINE = INFINITE_DEADLINE;
 };
 
 }
