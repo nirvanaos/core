@@ -432,8 +432,6 @@ private:
 	DataHolder data_holder_;
 	Nirvana::Locale::_ref_type locale_;
 	CORBA::Core::ValueList value_list_;
-
-	static const DeadlineTime ASYNC_DESTROY_DEADLINE = INFINITE_DEADLINE;
 };
 
 }

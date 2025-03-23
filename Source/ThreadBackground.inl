@@ -38,7 +38,7 @@ void ThreadBackground::execute () noexcept
 {
 	ExecDomain* ed = exec_domain ();
 	if (ed)
-		ed->execute (*this);
+		ed->execute (*this, Ref <Executor> (ed));
 }
 
 }

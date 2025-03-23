@@ -29,6 +29,7 @@
 #pragma once
 
 #include "Thread.h"
+#include "Executor.h"
 
 namespace Nirvana {
 namespace Core {
@@ -37,12 +38,12 @@ class Executor;
 
 /// ThreadWorker instances are never created by core.
 /// The underlying port implementation creates a pool of ThreadWorker objects on startup.
-class NIRVANA_NOVTABLE ThreadWorker :
+class ThreadWorker :
 	public Thread
 {
 public:
 	/// This method is called by the scheduler.
-	void execute (Executor& executor) noexcept;
+	void execute (Ref <Executor>&& executor) noexcept;
 };
 
 }

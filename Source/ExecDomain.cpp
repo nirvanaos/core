@@ -120,7 +120,7 @@ void ExecDomain::spawn (SyncContext& sync_context)
 	}
 }
 
-void ExecDomain::execute (Thread& thread) noexcept
+void ExecDomain::execute (Thread& thread, Ref <Executor> holder) noexcept
 {
 	thread.exec_domain (*this);
 	if (!impersonation_context_.empty ())
@@ -359,11 +359,12 @@ void ExecDomain::Schedule::run ()
 	ExecDomain* ed = th.exec_domain ();
 	assert (ed);
 	try {
+		{
+			Ref <SyncContext> sc (sync_context_);
+			ed->schedule (sc, ret_);
+		}
 		th.yield ();
-		Ref <SyncContext> sc (sync_context_);
-		ed->schedule (sc, ret_);
 	} catch (const CORBA::SystemException& ex) {
-		th.exec_domain (*ed);
 		exception_ = ex.__code ();
 	}
 }
@@ -471,11 +472,10 @@ bool ExecDomain::reschedule ()
 	return false;
 }
 
-void ExecDomain::Reschedule::run ()
+void ExecDomain::leave_sync_domain () noexcept
 {
-	ExecDomain& ed = ExecDomain::current ();
-	ed.suspend_prepared ();
-	ed.resume ();
+	if (execution_sync_domain_)
+		Ref <SyncDomain> (std::move (execution_sync_domain_))->leave ();
 }
 
 void ExecDomain::suspend ()
@@ -496,6 +496,13 @@ bool ExecDomain::suspended () const noexcept
 				return true;
 		}
 	}
+}
+
+void ExecDomain::Reschedule::run ()
+{
+	ExecDomain& ed = ExecDomain::current ();
+	ed.suspend_prepared ();
+	ed.resume ();
 }
 
 void ExecDomain::Suspend::run ()

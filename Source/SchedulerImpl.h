@@ -59,10 +59,8 @@ public:
 		queue_ (SystemInfo::hardware_concurrency ()),
 		counters_ (SystemInfo::hardware_concurrency ())
 	{
-		unsigned cores = SystemInfo::hardware_concurrency ();
-		unsigned shift = sizeof (unsigned) * 8 - nlz (cores);
+		unsigned shift = sizeof (unsigned) * 8 - nlz ((unsigned)SystemInfo::hardware_concurrency ());
 		cores_mask_ = ~(~(Counters)0 << shift);
-		queue_inc_ = (Counters)1 << shift;
 	}
 
 	~SchedulerImpl ()
@@ -87,7 +85,7 @@ public:
 	void schedule (const DeadlineTime& deadline, const ExecutorRef& executor) noexcept
 	{
 		NIRVANA_VERIFY (queue_.insert (deadline, executor));
-		counters_.fetch_add (queue_inc_);
+		counters_.fetch_add (cores_mask_ + 1);
 		schedule ();
 	}
 
@@ -105,7 +103,6 @@ private:
 	Queue queue_;
 	std::atomic <Counters> counters_;
 	Counters cores_mask_;
-	Counters queue_inc_;
 };
 
 template <class T, class ExecutorRef>
@@ -136,7 +133,7 @@ void SchedulerImpl <T, ExecutorRef>::schedule () noexcept
 			return;
 
 		// Decrement both counters as a whole
-		Counters cnt_new = cnt - queue_inc_ - 1;
+		Counters cnt_new = cnt - (cores_mask_ + 2);
 		if (counters_.compare_exchange_weak (cnt, cnt_new))
 			break;
 	}

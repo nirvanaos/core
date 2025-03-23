@@ -25,21 +25,19 @@
 */
 #include "pch.h"
 #include "ThreadWorker.h"
-#include "Scheduler.h"
-#include "Thread.h"
-#include "Executor.h"
 
 namespace Nirvana {
 namespace Core {
 
 /// This method is called by the scheduler.
-void ThreadWorker::execute (Executor& executor) noexcept
+void ThreadWorker::execute (Ref <Executor>&& executor) noexcept
 {
 	// Always called in the neutral context.
 	assert (context () == &neutral_context ());
 
 	// Switch to executor context.
-	executor.execute (*this);
+	Executor* p = executor;
+	p->execute (*this, std::move (executor));
 }
 
 }

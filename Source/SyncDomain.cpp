@@ -33,10 +33,12 @@ SyncDomain::SyncDomain (Ref <MemContext>&& mem_context) noexcept :
 	SyncContext (true),
 	mem_context_ (std::move (mem_context)),
 	queue_ (mem_context_->heap ()),
-	executing_domain_ (nullptr),
 	state_ (State::IDLE),
 	activity_cnt_ (0),
 	need_schedule_ (false)
+#ifndef NDEBUG
+	, executing_domain_ (nullptr)
+#endif
 {
 #ifndef NDEBUG
 	Thread* cur = Thread::current_ptr ();
@@ -95,7 +97,7 @@ void SyncDomain::schedule () noexcept
 	}
 }
 
-void SyncDomain::execute (Thread& worker) noexcept
+void SyncDomain::execute (Thread& worker, Ref <Executor> holder) noexcept
 {
 	assert (State::IDLE != state_);
 	assert (!queue_.empty ());
@@ -110,18 +112,19 @@ void SyncDomain::execute (Thread& worker) noexcept
 		NIRVANA_VERIFY (queue_.delete_min (executor));
 	}
 	ExecDomain& ed = static_cast <ExecDomain&> (*executor);
+#ifndef NDEBUG
 	executing_domain_ = &ed;
-	ed.execute (worker, *this);
+#endif
+	ed.execute (worker, std::move (executor), Ref <SyncDomain>::cast (std::move (holder)));
 }
 
 void SyncDomain::leave () noexcept
 {
+#ifndef NDEBUG
 	assert (executing_domain_);
 	assert (executing_domain_ == &ExecDomain::current ());
-	assert (executing_domain_->execution_sync_domain () == this);
-
-	executing_domain_->on_leave_sync_domain ();
 	executing_domain_ = nullptr;
+#endif
 
 	// activity_begin() was called in schedule (const DeadlineTime& deadline, Executor& executor);
 	// So we call activity_end () here for the balance.
@@ -166,7 +169,9 @@ SyncDomain& SyncDomain::enter ()
 		sd->activity_begin ();
 		sd->state_ = State::SCHEDULED;
 		exec_domain.sync_context (*sd);
+#ifndef NDEBUG
 		sd->executing_domain_ = &exec_domain;
+#endif
 		exec_domain.on_enter_sync_domain (*sd);
 		psd = sd;
 	}
