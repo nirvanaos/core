@@ -156,13 +156,7 @@ protected:
 	SyncDomain& operator = (SyncDomain&&) = delete;
 
 private:
-	void schedule () noexcept
-	{
-		need_schedule_.store (true, std::memory_order_relaxed);
-		do_schedule ();
-	}
-
-	void do_schedule () noexcept;
+	void schedule () noexcept;
 
 	void activity_begin ();
 	void activity_end () noexcept;
