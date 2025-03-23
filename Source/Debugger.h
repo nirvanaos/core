@@ -71,7 +71,7 @@ public:
 		s.append (msg.c_str (), msg.size ());
 		s += '\n';
 		Port::Debugger::output_debug_string (evt, s.c_str ());
-		if (evt >= DebugEvent::DEBUG_WARNING
+		if (evt > DebugEvent::DEBUG_WARNING
 			&& !Port::Debugger::debug_break () && evt >= DebugEvent::DEBUG_ASSERT)
 		{
 			Thread* th = Thread::current_ptr ();

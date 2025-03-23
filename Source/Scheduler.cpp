@@ -31,9 +31,6 @@
 #include "ORB/ESIOP.h"
 #include "SysManager.h"
 
-// Output debug messages on shutdown.
-#define DEBUG_SHUTDOWN
-
 // If we use INFINITE_DEADLINE, the new background thread will be created for shutdown.
 //#define SHUTDOWN_DEADLINE Chrono::make_deadline (1 * TimeBase::MINUTE)
 #define SHUTDOWN_DEADLINE INFINITE_DEADLINE

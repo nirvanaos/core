@@ -30,6 +30,7 @@
 #include "PriorityQueueReorder.h"
 #include "SkipListWithPool.h"
 #include "SystemInfo.h"
+#include "unrecoverable_error.h"
 #include <Nirvana/bitutils.h>
 #include <atomic>
 
@@ -108,18 +109,12 @@ private:
 template <class T, class ExecutorRef>
 void SchedulerImpl <T, ExecutorRef>::core_free () noexcept
 {
-	Counters cnt = counters_.load (std::memory_order_acquire);
-	for (;;) {
-		Counters cores = (cnt & cores_mask_) + 1;
-		if (cores > SystemInfo::hardware_concurrency ()) {
-			assert (false);
-			// TODO: Log
-			return;
-		}
-		Counters cnt_new = (cnt & ~cores_mask_) | cores;
-		if (counters_.compare_exchange_weak (cnt, cnt_new))
-			break;
-	}
+#ifndef NDEBUG
+	Counters cur = counters_.load (std::memory_order_acquire) & cores_mask_;
+	if (cur >= SystemInfo::hardware_concurrency ())
+		unrecoverable_error (-1);
+#endif
+	counters_.fetch_add (1);
 	schedule ();
 }
 
