@@ -31,6 +31,7 @@
 #include "HeapDynamic.h"
 #include "ORB/Services.h"
 #include "ORB/RefCnt.h"
+#include <Port/config.h>
 
 namespace Nirvana {
 namespace Core {
@@ -154,19 +155,23 @@ void MemContext::_remove_ref () noexcept
 			}
 		}
 
-		// Sometimes (rarely) MemContext may be released out of the execution domain.
-		// In this case we create special execution domain for this.
+		if (ENABLE_MEM_CONTEXT_ASYNC_DESTROY) {
+			// For some host implementations, MemContext may be released out of the execution domain.
+			// In this case we create special execution domain for this.
 
-		Nirvana::DeadlineTime deadline =
-			ASYNC_DESTROY_DEADLINE == INFINITE_DEADLINE ?
-			INFINITE_DEADLINE : Chrono::make_deadline (ASYNC_DESTROY_DEADLINE);
+			Nirvana::DeadlineTime deadline =
+				GC_DEADLINE == INFINITE_DEADLINE ?
+				INFINITE_DEADLINE : Chrono::make_deadline (GC_DEADLINE);
 
-		try {
-			ExecDomain::async_call <Deleter> (deadline, g_core_free_sync_context, nullptr, std::ref (*this));
-		} catch (...) {
-			assert (false);
-			// TODO: Log
-		}
+			try {
+				ExecDomain::async_call <Deleter> (deadline, g_core_free_sync_context, nullptr,
+					std::ref (*this));
+			} catch (...) {
+				assert (false);
+				// TODO: Log
+			}
+		} else
+			unrecoverable_error (-1);
 	}
 }
 
