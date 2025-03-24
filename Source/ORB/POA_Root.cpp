@@ -150,15 +150,22 @@ void POA_Root::invoke (RequestRef request, bool async) noexcept
 
 void POA_Root::invoke_sync (Request& request)
 {
-	POA_Ref adapter;
-	try {
-		adapter = find_child (ObjectKey::get_adapter_path (request.object_key ()), true);
-	} catch (...) {
-		throw OBJ_ADAPTER (MAKE_OMG_MINOR (1));
-	}
-	if (!adapter)
-		throw OBJECT_NOT_EXIST (MAKE_OMG_MINOR (2));
+	POA_Base* adapter;
+	POA::_ref_type adapter_holder;
+	{
+		POA_Ref adapter_ref;
+		try {
+			adapter_ref = find_child (ObjectKey::get_adapter_path (request.object_key ()), true);
+		} catch (...) {
+			throw OBJ_ADAPTER (MAKE_OMG_MINOR (1));
+		}
+		if (!adapter_ref)
+			throw OBJECT_NOT_EXIST (MAKE_OMG_MINOR (2));
+		adapter = adapter_ref;
+		adapter_holder = adapter_ref->_this ();
 
+		// Sync context may be changed during the adapter->invoke() so we release adapter_ref here
+	}
 	adapter->invoke (request);
 }
 
