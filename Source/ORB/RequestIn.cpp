@@ -271,8 +271,8 @@ void RequestIn::serve (const ServantProxyBase& proxy)
 			// we must pop unused memory context from stack.
 			sync_domain_after_unmarshal_ = nullptr;
 			ed.mem_context_pop ();
-		}
-		ed.schedule_return (ret_context);
+		} else
+			ed.schedule_return (ret_context);
 	} else {
 		// Enter the target synchronization context now.
 		// We don't need to handle exceptions here, because invoke () does not throw exceptions.
@@ -295,10 +295,14 @@ void RequestIn::unmarshal_end (bool no_check_size)
 	RequestGIOP::unmarshal_end (no_check_size);
 
 	// Here we must enter the target sync domain, if any.
-	SyncDomain* sd;
+	servant_reference <SyncDomain> sd;
 	if ((sd = sync_domain_after_unmarshal_)) {
-		ExecDomain::current ().schedule_call_no_push_mem (*sd);
-		sync_domain_after_unmarshal_ = nullptr;
+		try {
+			ExecDomain::current ().schedule_call_no_push_mem (*sd);
+		} catch (...) {
+			sync_domain_after_unmarshal_ = sd;
+			throw;
+		}
 	}
 }
 
