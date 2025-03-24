@@ -98,6 +98,9 @@ public:
 
 	static void get_DGC_objects (const IDL::Sequence <IOP::ObjectKey>& keys, CORBA::Core::ReferenceLocalRef* refs)
 	{
+		if (shutdown_)
+			return;
+
 		CORBA::Object::_ref_type proxy = get_root (); // Hold root POA proxy reference
 		SYNC_BEGIN (CORBA::Core::local2proxy (proxy)->sync_context (), nullptr)
 		for (const auto& iop_key : keys) {
