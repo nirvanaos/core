@@ -315,13 +315,14 @@ void ExecDomain::schedule_return (SyncContext& target, bool no_reschedule) noexc
 {
 	mem_context_pop ();
 
-	if (no_reschedule && (&sync_context () == &target))
+	SyncDomain* target_sd = target.sync_domain ();
+	if (no_reschedule && (&sync_context () == &target) && (target_sd == execution_sync_domain_))
 		return;
 
 	leave_sync_domain ();
 
-	if (target.sync_domain ()
-		|| !(deadline () == INFINITE_DEADLINE && &Thread::current () == background_worker_)) {
+	if (target_sd ||
+		!(deadline () == INFINITE_DEADLINE && &Thread::current () == background_worker_)) {
 
 		schedule_.ret (target);
 	} else
