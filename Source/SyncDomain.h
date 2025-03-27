@@ -108,6 +108,7 @@ public:
 			activity_end ();
 			throw;
 		}
+		queue_items_.increment ();
 		schedule ();
 	}
 
@@ -124,6 +125,7 @@ public:
 		unsigned level = node->level;
 		Port::Thread::PriorityBoost boost;
 		NIRVANA_VERIFY (queue_.insert (new (node) Queue::NodeVal (level, deadline, &executor)));
+		queue_items_.increment ();
 		schedule ();
 	}
 
@@ -157,6 +159,7 @@ protected:
 
 private:
 	void schedule () noexcept;
+	bool scheduling_end () noexcept;
 
 	void activity_begin ();
 	void activity_end () noexcept;
@@ -166,15 +169,18 @@ private:
 	{
 		IDLE,
 		SCHEDULING,
-		STOP_SCHEDULING,
-		SCHEDULED
+		SCHEDULED,
+		SCHEDULING_STOP,
+		SCHEDULING_END,
+		EXECUTING
 	};
 
 	Ref <MemContext> mem_context_;
 	Queue queue_;
-	std::atomic <State> state_;
 	AtomicCounter <false> activity_cnt_;
-	std::atomic <bool> need_schedule_;
+	AtomicCounter <false> queue_items_;
+	std::atomic <State> state_;
+	DeadlineTime scheduled_deadline_;
 
 #ifndef NDEBUG
 	ExecDomain* executing_domain_;
