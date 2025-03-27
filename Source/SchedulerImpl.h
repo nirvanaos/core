@@ -5,7 +5,7 @@
 *
 * Author: Igor Popov
 *
-* Copyright (c) 2021 Igor Popov.
+* Copyright (c) 2025 Igor Popov.
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU Lesser General Public License as published by
@@ -29,9 +29,9 @@
 
 #include "PriorityQueueReorder.h"
 #include "SkipListWithPool.h"
+#include "AtomicCounter.h"
 #include "SystemInfo.h"
 #include "unrecoverable_error.h"
-#include <Nirvana/bitutils.h>
 #include <atomic>
 
 namespace Nirvana {
@@ -46,27 +46,16 @@ class SchedulerImpl
 {
 	using Queue = SkipListWithPool <PriorityQueueReorder <ExecutorRef, SKIP_LIST_DEFAULT_LEVELS> >;
 
-	using Counters =
-#if ATOMIC_LLONG_LOCK_FREE
-		uint64_t;
-#elif ATOMIC_LONG_LOCK_FREE
-		uint32_t;
-#else
-		uintptr_t;
-#endif
-
 public:
 	SchedulerImpl () noexcept :
 		queue_ (SystemInfo::hardware_concurrency ()),
-		counters_ (SystemInfo::hardware_concurrency ())
-	{
-		unsigned shift = sizeof (unsigned) * 8 - nlz ((unsigned)SystemInfo::hardware_concurrency ());
-		cores_mask_ = ~(~(Counters)0 << shift);
-	}
+		queue_items_ (0),
+		free_cores_ (SystemInfo::hardware_concurrency ())
+	{}
 
 	~SchedulerImpl ()
 	{
-		assert (counters_ == SystemInfo::hardware_concurrency ());
+		assert (queue_items_ == 0 && free_cores_ == SystemInfo::hardware_concurrency ());
 	}
 
 	void create_item (bool with_reschedule)
@@ -83,62 +72,65 @@ public:
 			queue_.delete_item ();
 	}
 
-	void schedule (const DeadlineTime& deadline, const ExecutorRef& executor) noexcept
-	{
-		NIRVANA_VERIFY (queue_.insert (deadline, executor));
-		counters_.fetch_add (cores_mask_ + 1);
-		schedule ();
-	}
-
-	bool reschedule (const DeadlineTime& deadline, const ExecutorRef& executor, const DeadlineTime& deadline_prev) noexcept
+	bool reschedule (const DeadlineTime& deadline, const ExecutorRef& executor, const DeadlineTime& deadline_prev)
 	{
 		return queue_.reorder (deadline, executor, deadline_prev);
 	}
 
-	void core_free () noexcept;
+	void schedule (const DeadlineTime& deadline, const ExecutorRef& executor)
+	{
+		NIRVANA_VERIFY (queue_.insert (deadline, executor));
+
+		for (;;) {
+			if (free_cores_.decrement_if_not_zero ()) {
+				if (execute ())
+					return;
+				free_cores_.increment ();
+			}
+			if (queue_items_.increment_seq () == 1) {
+				if (!free_cores_.load ())
+					break;
+				if (!queue_items_.decrement_if_not_zero ())
+					break;
+			} else
+				break;
+		}
+	}
+
+	void core_free () noexcept
+	{
+		for (;;) {
+			while (queue_items_.decrement_if_not_zero ()) {
+				if (execute ())
+					return;
+			}
+			auto cores = free_cores_.increment_seq ();
+			assert (cores <= SystemInfo::hardware_concurrency ());
+			if (cores == 1) {
+				if (!queue_items_.load ())
+					break;
+				if (!free_cores_.decrement_if_not_zero ())
+					break;
+			} else
+				break;
+		}
+	}
 
 private:
-	void schedule () noexcept;
+	bool execute () noexcept;
 
 private:
 	Queue queue_;
-	std::atomic <Counters> counters_;
-	Counters cores_mask_;
+	AtomicCounter <false> queue_items_;
+	AtomicCounter <false> free_cores_;
 };
 
 template <class T, class ExecutorRef>
-void SchedulerImpl <T, ExecutorRef>::core_free () noexcept
+bool SchedulerImpl <T, ExecutorRef>::execute () noexcept
 {
-#ifndef NDEBUG
-	Counters cur = counters_.load (std::memory_order_acquire) & cores_mask_;
-	if (cur >= SystemInfo::hardware_concurrency ())
-		unrecoverable_error (-1);
-#endif
-	counters_.fetch_add (1);
-	schedule ();
-}
-
-template <class T, class ExecutorRef>
-void SchedulerImpl <T, ExecutorRef>::schedule () noexcept
-{
-	Counters cnt = counters_.load (std::memory_order_acquire);
-	for (;;) {
-		// We must have at least one item in queue and at least one free processor core
-		if (!(cnt & cores_mask_) || !(cnt & ~cores_mask_))
-			return;
-
-		// Decrement both counters as a whole
-		Counters cnt_new = cnt - (cores_mask_ + 2);
-		if (counters_.compare_exchange_weak (cnt, cnt_new))
-			break;
-	}
-
 	ExecutorRef val;
 	NIRVANA_VERIFY (queue_.delete_min (val));
-	if (!static_cast <T*> (this)->execute (std::move (val))) {
-		// Error in protection domain execution, probably it is terminated.
-		core_free ();
-	}
+	return static_cast <T*> (this)->execute (std::move (val));
 }
 
 }
