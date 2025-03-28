@@ -32,11 +32,11 @@ namespace Core {
 
 const Security::Context& Security::Context::current () noexcept
 {
-	const Thread* pt = Thread::current_ptr ();
-	if (pt) {
-		const ExecDomain* ped = pt->exec_domain ();
-		if (ped) {
-			const Security::Context& impersonated = ped->impersonation_context ();
+	const Thread* th = Thread::current_ptr ();
+	if (th && th->executing ()) {
+		const ExecDomain* ed = th->exec_domain ();
+		if (ed) {
+			const Security::Context& impersonated = ed->impersonation_context ();
 			if (!impersonated.empty ())
 				return impersonated;
 		}

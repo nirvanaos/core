@@ -238,7 +238,7 @@ public:
 	{
 		Binary* binary = nullptr;
 		Thread* th = Thread::current_ptr ();
-		if (th && th->exec_domain ()) {
+		if (th && th->executing ()) {
 			SYNC_BEGIN (sync_domain (), nullptr)
 				auto it = singleton_->binary_map_.upper_bound (signal.si_addr);
 			assert (it != singleton_->binary_map_.begin ());

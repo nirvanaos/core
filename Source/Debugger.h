@@ -73,7 +73,7 @@ public:
 		Port::Debugger::output_debug_string (evt, s.c_str ());
 		if (evt >= DebugEvent::DEBUG_ASSERT && !Port::Debugger::debug_break ()) {
 			Thread* th = Thread::current_ptr ();
-			if (th) {
+			if (th && th->executing ()) {
 				ExecDomain* ed = th->exec_domain ();
 				if (ed) {
 					ed->raise (SIGABRT);

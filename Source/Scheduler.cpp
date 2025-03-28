@@ -119,7 +119,7 @@ bool Scheduler::start_shutdown (State& from_state) noexcept
 			// If called from worker thread and not from the invocation context dispatched from some POA,
 			// do shutdown in the current execution domain. Otherwise start async call.
 			Thread* th = Thread::current_ptr ();
-			if (th) {
+			if (th && th->executing ()) {
 				ExecDomain* ed = th->exec_domain ();
 				if (ed && !ed->TLS_get (CoreTLS::CORE_TLS_PORTABLE_SERVER)) {
 					do_shutdown ();

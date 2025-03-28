@@ -208,9 +208,9 @@ public:
 			Core::TimerSleep ().sleep (period100ns);
 	}
 
-	static bool yield ()
+	static void yield () noexcept
 	{
-		return Core::ExecDomain::reschedule ();
+		Core::ExecDomain::reschedule ();
 	}
 
 	static void unlink (const IDL::String& path)

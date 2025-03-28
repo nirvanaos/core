@@ -42,7 +42,7 @@ SyncDomain::SyncDomain (Ref <MemContext>&& mem_context) noexcept :
 {
 #ifndef NDEBUG
 	Thread* cur = Thread::current_ptr ();
-	if (cur) {
+	if (cur && cur->executing ()) {
 		ExecDomain* ed = cur->exec_domain ();
 		assert (!ed->sync_context ().sync_domain ());
 	}

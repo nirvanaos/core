@@ -32,7 +32,6 @@
 #include "Stack.h"
 #include "PreallocatedStack.h"
 #include "ObjectPool.h"
-#include "ThreadBackground.h"
 #include "unrecoverable_error.h"
 #include "Security.h"
 #include "ORB/SystemExceptionHolder.h"
@@ -43,6 +42,8 @@
 
 namespace Nirvana {
 namespace Core {
+
+class ThreadBackground;
 
 /// Core TLS indexes.
 enum CoreTLS
@@ -225,7 +226,7 @@ public:
 	}
 
 	/// Reschedule
-	static bool reschedule ();
+	static void reschedule () noexcept;
 
 	/// \brief Called from the Port implementation.
 	void run ()
