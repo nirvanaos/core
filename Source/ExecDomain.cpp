@@ -192,7 +192,7 @@ void ExecDomain::Deleter::run ()
 	assert (ed);
 
 	Thread::current ().yield ();
-	if (ed->background_worker_) {
+	if (!BACKGROUND_THREAD_DISABLE && ed->background_worker_) {
 		ed->background_worker_->stop ();
 		ed->background_worker_ = nullptr;
 	}
@@ -243,7 +243,7 @@ void ExecDomain::mem_context_pop () noexcept
 
 void ExecDomain::create_background_worker ()
 {
-	if (!background_worker_)
+	if (!BACKGROUND_THREAD_DISABLE && !background_worker_)
 		background_worker_ = ThreadBackground::spawn ();
 }
 
@@ -255,7 +255,7 @@ void ExecDomain::schedule (Ref <SyncContext>& target, bool ret)
 	Ref <SyncDomain> sync_domain = target->sync_domain ();
 	bool background = false;
 	if (!sync_domain) {
-		if (INFINITE_DEADLINE == deadline ()) {
+		if (!BACKGROUND_THREAD_DISABLE && INFINITE_DEADLINE == deadline ()) {
 			background = true;
 			assert (!ret || background_worker_);
 			if (!ret)
@@ -274,7 +274,7 @@ void ExecDomain::schedule (Ref <SyncContext>& target, bool ret)
 			else
 				sync_domain->schedule (deadline (), *this);
 		} else {
-			if (background)
+			if (!BACKGROUND_THREAD_DISABLE && background)
 				background_worker_->execute (*this);
 			else
 				Scheduler::schedule (deadline (), *this);
@@ -300,7 +300,7 @@ void ExecDomain::schedule_call_no_push_mem (SyncContext& target)
 
 	leave_sync_domain ();
 
-	if (target.sync_domain () ||
+	if (BACKGROUND_THREAD_DISABLE || target.sync_domain () ||
 		!(deadline () == INFINITE_DEADLINE && &Thread::current () == background_worker_)) {
 		// Need to schedule
 
@@ -321,7 +321,7 @@ void ExecDomain::schedule_return (SyncContext& target, bool no_reschedule) noexc
 
 	leave_sync_domain ();
 
-	if (target_sd ||
+	if (BACKGROUND_THREAD_DISABLE || target_sd ||
 		!(deadline () == INFINITE_DEADLINE && &Thread::current () == background_worker_)) {
 
 		schedule_.ret (target);
@@ -465,7 +465,7 @@ bool ExecDomain::reschedule ()
 	Thread& thr = Thread::current ();
 	ExecDomain* ed = thr.exec_domain ();
 	assert (ed);
-	if (&thr != ed->background_worker_) {
+	if (BACKGROUND_THREAD_DISABLE || &thr != ed->background_worker_) {
 		ed->suspend_prepare ();
 		ExecContext::run_in_neutral_context (reschedule_);
 		return true;
