@@ -29,6 +29,7 @@
 #include "Binder.h"
 #include "Scheduler.h"
 #include "ExecDomain.h"
+#include "ThreadBackground.h"
 #include "Timer.h"
 #include "TLS.h"
 #include "ORB/ORB_initterm.h"

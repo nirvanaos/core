@@ -1,4 +1,3 @@
-/// \file
 /*
 * Nirvana Core.
 *
@@ -24,24 +23,20 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_CORE_THREADBACKGROUND_INL_
-#define NIRVANA_CORE_THREADBACKGROUND_INL_
-#pragma once
-
-#include "ExecDomain.h"
+#include "pch.h"
+#include "Thread.h"
 
 namespace Nirvana {
 namespace Core {
 
-inline
-void ThreadBackground::execute () noexcept
-{
-	ExecDomain* ed = exec_domain ();
-	if (ed)
-		ed->execute (*this, Ref <Executor> (ed));
-}
+Thread::Thread () :
+	exec_domain_ (nullptr),
+	neutral_context_ (true),
+	executing_ (false)
+{}
+
+Thread::~Thread ()
+{}
 
 }
 }
-
-#endif

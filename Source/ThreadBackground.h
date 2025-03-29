@@ -30,6 +30,7 @@
 
 #include "Heap.h"
 #include "ConditionalCreator.h"
+#include "ExecDomain.h"
 #include <Port/ThreadBackground.h>
 #include <Port/config.h>
 
@@ -58,30 +59,44 @@ public:
 		Creator::terminate ();
 	}
 
-	static ThreadBackground* spawn ()
+	/// Create a new thread.
+	/// @param ed ExecDomain assigned to the new background thread.
+	static ThreadBackground* spawn (ExecDomain& ed)
 	{
-		return Creator::create ();
+		ThreadBackground* thr = Creator::create ();
+		thr->exec_domain (ed);
+		return thr;
 	}
 
+	/// Terminate current thread.
 	void stop () noexcept
 	{
-		// yield() must be called before stop()
-		assert (!exec_domain ());
-
+		assert (!dbg_exec_);
+		cleanup ();
 		if (BACKGROUND_THREAD_POOLING)
 			Creator::release (this);
 		else
 			Base::stop ();
 	}
 
-	void execute (ExecDomain& exec_domain)
+	/// Switch context to ExecDomain and execute.
+	void execute () noexcept
 	{
-		Thread::exec_domain (exec_domain);
-		Base::resume ();
+		assert (!dbg_exec_.exchange (true));
+		Base::execute ();
+	}
+
+	/// Yield execution to another thread that is ready to run on the current processor.
+	void yield () noexcept
+	{
+		Base::yield ();
 	}
 
 protected:
 	ThreadBackground ()
+#ifndef NDEBUG
+		: dbg_exec_ (false)
+#endif
 	{
 		Base::start ();
 	}
@@ -90,7 +105,21 @@ protected:
 
 private:
 	// Called from port.
-	inline void execute () noexcept;
+	inline void run () noexcept
+	{
+		assert (this == current_ptr ());
+
+		// Always called in the neutral context.
+		assert (context () == &neutral_context ());
+
+		assert (dbg_exec_.exchange (false));
+
+		execute_begin ();
+
+		ExecDomain* ed = exec_domain ();
+		assert (ed);
+		ed->execute (*this, Ref <Executor> (ed));
+	}
 
 	// Called from port.
 	void on_thread_proc_end () noexcept
@@ -98,6 +127,11 @@ private:
 		if (!BACKGROUND_THREAD_POOLING)
 			Creator::release (this);
 	}
+
+private:
+#ifndef NDEBUG
+	std::atomic <bool> dbg_exec_;
+#endif
 
 };
 

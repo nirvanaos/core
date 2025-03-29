@@ -35,14 +35,14 @@ SyncDomain::SyncDomain (Ref <MemContext>&& mem_context) noexcept :
 	queue_ (mem_context_->heap ()),
 	state_ (State::IDLE),
 	activity_cnt_ (0),
-	need_schedule_ (false)
+	queue_items_ (0)
 #ifndef NDEBUG
 	, executing_domain_ (nullptr)
 #endif
 {
 #ifndef NDEBUG
 	Thread* cur = Thread::current_ptr ();
-	if (cur) {
+	if (cur && cur->executing ()) {
 		ExecDomain* ed = cur->exec_domain ();
 		assert (!ed->sync_context ().sync_domain ());
 	}
@@ -58,59 +58,85 @@ SyncDomain::~SyncDomain ()
 
 void SyncDomain::schedule () noexcept
 {
-	need_schedule_.store (true, std::memory_order_relaxed);
+	// Only one thread perform scheduling at a given time.
+	State state = State::IDLE;
+	if (state_.compare_exchange_strong (state, State::SCHEDULING)) {
 
-	while (need_schedule_.load (std::memory_order_acquire)) {
-		// Only one thread perform scheduling at a given time.
-		State state = State::IDLE;
+		if (0 == queue_items_.load ()) {
+			scheduling_end ();
+			return;
+		}
+
+		DeadlineTime min_deadline;
+		NIRVANA_VERIFY (queue_.get_min_deadline (min_deadline));
+		Scheduler::schedule (min_deadline, *this);
+		scheduled_deadline_ = min_deadline;
+		if (scheduling_end ())
+			return;
+		if (queue_items_.load () <= 1)
+			return;
+	}
+
+	for (;;) {
+		state = State::SCHEDULED;
 		if (!state_.compare_exchange_strong (state, State::SCHEDULING))
 			break;
 
-		if (!need_schedule_.exchange (false, std::memory_order_acquire))
-			state_.store (State::IDLE, std::memory_order_release);
-		else {
-
-			DeadlineTime min_deadline;
-			NIRVANA_VERIFY (queue_.get_min_deadline (min_deadline));
-			Scheduler::schedule (min_deadline, *this);
-
-			while (need_schedule_.exchange (false, std::memory_order_acquire)) {
-
-				state = State::STOP_SCHEDULING;
-				if (state_.compare_exchange_strong (state, State::SCHEDULED))
-					return;
-
-				DeadlineTime new_deadline;
-				NIRVANA_VERIFY (queue_.get_min_deadline (new_deadline));
-
-				if (new_deadline < min_deadline) {
-					if (Scheduler::reschedule (new_deadline, *this, min_deadline))
-						min_deadline = new_deadline;
-					else
-						break;
-				}
+		auto qitems = queue_items_.load ();
+		DeadlineTime min_deadline;
+		NIRVANA_VERIFY (queue_.get_min_deadline (min_deadline));
+		if (min_deadline < scheduled_deadline_) {
+			if (!Scheduler::reschedule (min_deadline, *this, scheduled_deadline_)) {
+				state_.store (State::SCHEDULING_END, std::memory_order_release);
+				return;
 			}
-
-			state_.store (State::SCHEDULED, std::memory_order_release);
-			break;
+			scheduled_deadline_ = min_deadline;
 		}
+		if (scheduling_end ())
+			return;
+		if (queue_items_.load () <= qitems)
+			break;
 	}
+}
+
+bool SyncDomain::scheduling_end () noexcept
+{
+	State state = State::SCHEDULING;
+	if (!state_.compare_exchange_strong (state, State::SCHEDULED)) {
+		assert (state == State::SCHEDULING_STOP);
+		state_.store (State::SCHEDULING_END, std::memory_order_release);
+		return true;
+	}
+	return false;
 }
 
 void SyncDomain::execute (Thread& worker, Ref <Executor> holder) noexcept
 {
 	assert (State::IDLE != state_);
-	assert (!queue_.empty ());
-
-	// Signal schedulig thread to stop further rescheduling.
-	State state = State::SCHEDULING;
-	state_.compare_exchange_strong (state, State::STOP_SCHEDULING);
+	assert (queue_items_ > 0);
 
 	Ref <Executor> executor;
 	{
 		Port::Thread::PriorityBoost boost (&worker);
+
+		for (BackOff bo;;) {
+			State state = State::SCHEDULED;
+			if (state_.compare_exchange_strong (state, State::EXECUTING))
+				break;
+			state = State::SCHEDULING;
+			state_.compare_exchange_strong (state, State::SCHEDULING_STOP);
+			state = State::SCHEDULING_END;
+			if (state_.compare_exchange_weak (state, State::EXECUTING))
+				break;
+			bo ();
+		}
+
+		assert (State::EXECUTING == state_);
+		queue_items_.decrement ();
+
 		NIRVANA_VERIFY (queue_.delete_min (executor));
 	}
+
 	ExecDomain& ed = static_cast <ExecDomain&> (*executor);
 #ifndef NDEBUG
 	executing_domain_ = &ed;
@@ -123,6 +149,7 @@ void SyncDomain::leave () noexcept
 #ifndef NDEBUG
 	assert (executing_domain_);
 	assert (executing_domain_ == &ExecDomain::current ());
+	assert (State::EXECUTING == state_);
 	executing_domain_ = nullptr;
 #endif
 
@@ -130,15 +157,8 @@ void SyncDomain::leave () noexcept
 	// So we call activity_end () here for the balance.
 	activity_end ();
 
-	Port::Thread::PriorityBoost boost;
-
-	// Wait for the scheduling is complete
-	for (BackOff bo; state_.load (std::memory_order_acquire) != State::SCHEDULED;) {
-		bo ();
-	}
-
 	// Check queue and enter the State::IDLE
-	bool sched = !queue_.empty ();
+	bool sched = queue_items_.load () > 0;
 	state_.store (State::IDLE, std::memory_order_relaxed);
 	if (sched)
 		schedule ();
@@ -167,7 +187,7 @@ SyncDomain& SyncDomain::enter ()
 		Ref <SyncDomain> sd = SyncDomainDyn <SyncDomainUser>::create (mc.heap (),
 			std::ref (sync_context), std::ref (mc));
 		sd->activity_begin ();
-		sd->state_ = State::SCHEDULED;
+		sd->state_ = State::EXECUTING;
 		exec_domain.sync_context (*sd);
 #ifndef NDEBUG
 		sd->executing_domain_ = &exec_domain;

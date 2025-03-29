@@ -37,9 +37,8 @@ namespace Core {
 
 class ExecDomain;
 
-/// Thread class.
-class Thread :
-	protected Port::Thread
+/// Thread class. Base for ThreadWorker and ThreadBackground.
+class Thread : protected Port::Thread
 {
 	friend class Port::Thread;
 
@@ -59,7 +58,7 @@ public:
 	}
 
 	/// Returns current thread.
-	/// May return nullptr.
+	/// May return nullptr if called from a special port thread.
 	static Thread* current_ptr () noexcept
 	{
 		return Port::Thread::current ();
@@ -68,6 +67,7 @@ public:
 	/// Returns ExecDomain assigned to thread.
 	ExecDomain* exec_domain () const noexcept
 	{
+		assert (executing_);
 		return exec_domain_;
 	}
 
@@ -85,11 +85,16 @@ public:
 	}
 
 	/// Release worker thread.
-	void yield () noexcept
+	/// This method is called by Executor from the neutral context when execution is completed.
+	void execute_end () noexcept
 	{
-		assert (this == &current ());
-		assert (exec_domain_);
-		exec_domain_ = nullptr;
+		assert (executing_);
+		executing_ = false;
+	}
+
+	bool executing () const noexcept
+	{
+		return executing_;
 	}
 
 	static void impersonate (const Security::Context& sec_context)
@@ -98,18 +103,29 @@ public:
 	}
 
 protected:
-	Thread () :
-		exec_domain_ (nullptr),
-		neutral_context_ (true)
-	{}
+	Thread ();
+	~Thread ();
 
-protected:
-	// Pointer to the current execution domain.
-	ExecDomain* volatile exec_domain_;
+	void execute_begin () noexcept
+	{
+		assert (!executing_);
+		executing_ = true;
+	}
+
+	void cleanup ()
+	{
+		assert (!executing_);
+		exec_domain_ = nullptr;
+	}
 
 private:
+	// Pointer to the current execution domain.
+	ExecDomain* exec_domain_;
+
 	// Special "neutral" execution context with own stack and CPU state.
 	ExecContext neutral_context_;
+
+	bool executing_;
 };
 
 }

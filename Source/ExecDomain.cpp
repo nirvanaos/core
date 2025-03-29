@@ -29,6 +29,7 @@
 #include "Chrono.h"
 #include "MemContext.h"
 #include "DeadlinePolicy.h"
+#include "ThreadBackground.h"
 
 namespace Nirvana {
 namespace Core {
@@ -69,7 +70,7 @@ Ref <ExecDomain> ExecDomain::create (const DeadlineTime deadline, Ref <MemContex
 		ed->mem_context_ = pmc;
 
 		Thread* th = Thread::current_ptr ();
-		if (th) {
+		if (th && th->executing ()) {
 			ExecDomain* parent = th->exec_domain ();
 			if (parent)
 				ed->impersonation_context_ = parent->impersonation_context_;
@@ -136,10 +137,12 @@ inline void ExecDomain::neutral_context_loop (Thread& worker) noexcept
 	assert (&ExecContext::current () == &worker.neutral_context ());
 	while (worker.neutral_context ().runnable ()) {
 		worker.neutral_context ().run ();
-		ExecDomain* ed = worker.exec_domain ();
-		if (ed) {
-			assert (ed->runnable ());
-			ed->switch_to ();
+		if (worker.executing ()) {
+			ExecDomain* ed = worker.exec_domain ();
+			if (ed) {
+				assert (ed->runnable ());
+				ed->switch_to ();
+			}
 		}
 	}
 }
@@ -188,11 +191,12 @@ void ExecDomain::final_release () noexcept
 
 void ExecDomain::Deleter::run ()
 {
-	ExecDomain* ed = Thread::current ().exec_domain ();
+	Thread& th = Thread::current ();
+	ExecDomain* ed = th.exec_domain ();
 	assert (ed);
 
-	Thread::current ().yield ();
-	if (ed->background_worker_) {
+	th.execute_end ();
+	if (!BACKGROUND_THREAD_DISABLE && ed->background_worker_) {
 		ed->background_worker_->stop ();
 		ed->background_worker_ = nullptr;
 	}
@@ -243,8 +247,8 @@ void ExecDomain::mem_context_pop () noexcept
 
 void ExecDomain::create_background_worker ()
 {
-	if (!background_worker_)
-		background_worker_ = ThreadBackground::spawn ();
+	if (!BACKGROUND_THREAD_DISABLE && !background_worker_)
+		background_worker_ = ThreadBackground::spawn (*this);
 }
 
 void ExecDomain::schedule (Ref <SyncContext>& target, bool ret)
@@ -255,7 +259,7 @@ void ExecDomain::schedule (Ref <SyncContext>& target, bool ret)
 	Ref <SyncDomain> sync_domain = target->sync_domain ();
 	bool background = false;
 	if (!sync_domain) {
-		if (INFINITE_DEADLINE == deadline ()) {
+		if (!BACKGROUND_THREAD_DISABLE && INFINITE_DEADLINE == deadline ()) {
 			background = true;
 			assert (!ret || background_worker_);
 			if (!ret)
@@ -274,8 +278,8 @@ void ExecDomain::schedule (Ref <SyncContext>& target, bool ret)
 			else
 				sync_domain->schedule (deadline (), *this);
 		} else {
-			if (background)
-				background_worker_->execute (*this);
+			if (!BACKGROUND_THREAD_DISABLE && background)
+				background_worker_->execute ();
 			else
 				Scheduler::schedule (deadline (), *this);
 		}
@@ -300,7 +304,7 @@ void ExecDomain::schedule_call_no_push_mem (SyncContext& target)
 
 	leave_sync_domain ();
 
-	if (target.sync_domain () ||
+	if (BACKGROUND_THREAD_DISABLE || target.sync_domain () ||
 		!(deadline () == INFINITE_DEADLINE && &Thread::current () == background_worker_)) {
 		// Need to schedule
 
@@ -321,7 +325,7 @@ void ExecDomain::schedule_return (SyncContext& target, bool no_reschedule) noexc
 
 	leave_sync_domain ();
 
-	if (target_sd ||
+	if (BACKGROUND_THREAD_DISABLE || target_sd ||
 		!(deadline () == INFINITE_DEADLINE && &Thread::current () == background_worker_)) {
 
 		schedule_.ret (target);
@@ -364,7 +368,7 @@ void ExecDomain::Schedule::run ()
 			Ref <SyncContext> sc (sync_context_);
 			ed->schedule (sc, ret_);
 		}
-		th.yield ();
+		th.execute_end ();
 	} catch (const CORBA::SystemException& ex) {
 		exception_ = ex.__code ();
 	}
@@ -442,7 +446,7 @@ void ExecDomain::suspend_prepared () noexcept
 
 	suspend_state_.store (SuspendState::SUSPENDED, std::memory_order_release);
 
-	Thread::current ().yield ();
+	Thread::current ().execute_end ();
 }
 
 void ExecDomain::resume () noexcept
@@ -460,17 +464,18 @@ void ExecDomain::resume () noexcept
 	schedule (tmp, true);
 }
 
-bool ExecDomain::reschedule ()
+void ExecDomain::reschedule () noexcept
 {
 	Thread& thr = Thread::current ();
 	ExecDomain* ed = thr.exec_domain ();
 	assert (ed);
-	if (&thr != ed->background_worker_) {
-		ed->suspend_prepare ();
-		ExecContext::run_in_neutral_context (reschedule_);
-		return true;
-	}
-	return false;
+	if (BACKGROUND_THREAD_DISABLE || &thr != ed->background_worker_) {
+		try {
+			ed->suspend_prepare ();
+			ExecContext::run_in_neutral_context (reschedule_);
+		} catch (...) {}
+	} else
+		ed->background_worker_->yield ();
 }
 
 void ExecDomain::leave_sync_domain () noexcept

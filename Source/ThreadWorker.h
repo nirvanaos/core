@@ -38,12 +38,26 @@ class Executor;
 
 /// ThreadWorker instances are never created by core.
 /// The underlying port implementation creates a pool of ThreadWorker objects on startup.
-class ThreadWorker :
-	public Thread
+class ThreadWorker : public Thread
 {
 public:
-	/// This method is called by the scheduler.
-	void execute (Ref <Executor>&& executor) noexcept;
+	/// This method is called by the port scheduler.
+	void execute (Ref <Executor>&& executor) noexcept
+	{
+		assert (this == current_ptr ());
+
+		// Always called in the neutral context.
+		assert (context () == &neutral_context ());
+
+		execute_begin ();
+
+		// Switch to executor context.
+		Executor* p = executor;
+		p->execute (*this, std::move (executor));
+
+		cleanup ();
+	}
+
 };
 
 }

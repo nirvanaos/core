@@ -71,16 +71,18 @@ public:
 		s.append (msg.c_str (), msg.size ());
 		s += '\n';
 		Port::Debugger::output_debug_string (evt, s.c_str ());
-		if (evt >= DebugEvent::DEBUG_ASSERT && !Port::Debugger::debug_break ()) {
-			Thread* th = Thread::current_ptr ();
-			if (th) {
-				ExecDomain* ed = th->exec_domain ();
-				if (ed) {
-					ed->raise (SIGABRT);
-					return;
+		if (evt >= DebugEvent::DEBUG_WARNING && !Port::Debugger::debug_break (evt)) {
+			if (evt >= DebugEvent::DEBUG_ASSERT) {
+				Thread* th = Thread::current_ptr ();
+				if (th && th->executing ()) {
+					ExecDomain* ed = th->exec_domain ();
+					if (ed) {
+						ed->raise (SIGABRT);
+						return;
+					}
 				}
+				unrecoverable_error (SIGABRT);
 			}
-			unrecoverable_error (SIGABRT);
 		}
 	}
 };

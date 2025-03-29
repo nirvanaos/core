@@ -39,7 +39,7 @@ namespace Core {
 bool MemContext::is_current (const MemContext* context) noexcept
 {
 	Thread* th = Thread::current_ptr ();
-	if (th) {
+	if (th && th->executing ()) {
 		ExecDomain* ed = th->exec_domain ();
 		if (ed)
 			return ed->mem_context_ptr () == context;
@@ -68,7 +68,7 @@ MemContext& MemContext::current ()
 MemContext* MemContext::current_ptr () noexcept
 {
 	Thread* th = Thread::current_ptr ();
-	if (th) {
+	if (th && th->executing ()) {
 		ExecDomain* ed = th->exec_domain ();
 		if (ed)
 			return ed->mem_context_ptr ();
@@ -147,7 +147,7 @@ void MemContext::_remove_ref () noexcept
 	if (!ref_cnt_.decrement_seq ()) {
 
 		Thread* th = Thread::current_ptr ();
-		if (th) {
+		if (th && th->executing ()) {
 			ExecDomain* ed = th->exec_domain ();
 			if (ed) {
 				destroy (*ed);
@@ -157,7 +157,7 @@ void MemContext::_remove_ref () noexcept
 
 		if (ENABLE_MEM_CONTEXT_ASYNC_DESTROY) {
 			// For some host implementations, MemContext may be released out of the execution domain.
-			// In this case we create special execution domain for this.
+			// In this case we create async call for this.
 
 			Nirvana::DeadlineTime deadline =
 				GC_DEADLINE == INFINITE_DEADLINE ?
