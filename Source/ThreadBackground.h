@@ -72,6 +72,7 @@ public:
 	void stop () noexcept
 	{
 		assert (!dbg_exec_);
+		cleanup ();
 		if (BACKGROUND_THREAD_POOLING)
 			Creator::release (this);
 		else

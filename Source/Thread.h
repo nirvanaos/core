@@ -112,11 +112,16 @@ protected:
 		executing_ = true;
 	}
 
-protected:
+	void cleanup ()
+	{
+		assert (!executing_);
+		exec_domain_ = nullptr;
+	}
+
+private:
 	// Pointer to the current execution domain.
 	ExecDomain* exec_domain_;
 
-private:
 	// Special "neutral" execution context with own stack and CPU state.
 	ExecContext neutral_context_;
 

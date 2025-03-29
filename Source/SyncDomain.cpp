@@ -115,26 +115,28 @@ void SyncDomain::execute (Thread& worker, Ref <Executor> holder) noexcept
 	assert (State::IDLE != state_);
 	assert (queue_items_ > 0);
 
-	for (BackOff bo;;) {
-		State state = State::SCHEDULED;
-		if (state_.compare_exchange_strong (state, State::EXECUTING))
-			break;
-		state = State::SCHEDULING;
-		state_.compare_exchange_strong (state, State::SCHEDULING_STOP);
-		state = State::SCHEDULING_END;
-		if (state_.compare_exchange_weak (state, State::EXECUTING))
-			break;
-		bo ();
-	}
-
-	assert (State::EXECUTING == state_);
-	queue_items_.decrement ();
-
 	Ref <Executor> executor;
 	{
 		Port::Thread::PriorityBoost boost (&worker);
+
+		for (BackOff bo;;) {
+			State state = State::SCHEDULED;
+			if (state_.compare_exchange_strong (state, State::EXECUTING))
+				break;
+			state = State::SCHEDULING;
+			state_.compare_exchange_strong (state, State::SCHEDULING_STOP);
+			state = State::SCHEDULING_END;
+			if (state_.compare_exchange_weak (state, State::EXECUTING))
+				break;
+			bo ();
+		}
+
+		assert (State::EXECUTING == state_);
+		queue_items_.decrement ();
+
 		NIRVANA_VERIFY (queue_.delete_min (executor));
 	}
+
 	ExecDomain& ed = static_cast <ExecDomain&> (*executor);
 #ifndef NDEBUG
 	executing_domain_ = &ed;

@@ -55,7 +55,7 @@ public:
 		Executor* p = executor;
 		p->execute (*this, std::move (executor));
 
-		exec_domain_ = nullptr;
+		cleanup ();
 	}
 
 };
