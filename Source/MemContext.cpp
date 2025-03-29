@@ -157,7 +157,7 @@ void MemContext::_remove_ref () noexcept
 
 		if (ENABLE_MEM_CONTEXT_ASYNC_DESTROY) {
 			// For some host implementations, MemContext may be released out of the execution domain.
-			// In this case we create special execution domain for this.
+			// In this case we create async call for this.
 
 			Nirvana::DeadlineTime deadline =
 				GC_DEADLINE == INFINITE_DEADLINE ?
