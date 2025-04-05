@@ -40,7 +40,7 @@ public:
 	static RuntimeGlobal& current ();
 
 	RuntimeGlobal () noexcept :
-		random_ (1),
+		random_ (),
 		error_number_ (0)
 	{}
 

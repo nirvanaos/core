@@ -35,6 +35,7 @@
 #include "TLS_Context.h"
 #include "FileDescriptorsContext.h"
 #include "CurrentDirContext.h"
+#include "LocaleContext.h"
 #include "UserObject.h"
 #include "LocaleImpl.h"
 #include "ORB/ValueList.h"
@@ -112,7 +113,7 @@ public:
 		return *heap_;
 	}
 
-	RuntimeSupportContext* runtime_support_ptr () noexcept
+	const RuntimeSupportContext* runtime_support_ptr () noexcept
 	{
 		return data_holder_.runtime_support_ptr ();
 	}
@@ -132,7 +133,7 @@ public:
 		return data_holder_.deadline_policy ();
 	}
 
-	TLS_Context* tls_ptr () const noexcept
+	TLS_Context* tls_ptr () noexcept
 	{
 		return data_holder_.tls_ptr ();
 	}
@@ -142,7 +143,7 @@ public:
 		return data_holder_.tls ();
 	}
 
-	FileDescriptorsContext* file_descriptors_ptr () const noexcept
+	FileDescriptorsContext* file_descriptors_ptr () noexcept
 	{
 		return data_holder_.file_descriptors_ptr ();
 	}
@@ -152,7 +153,7 @@ public:
 		return data_holder_.file_descriptors ();
 	}
 
-	RuntimeGlobal* runtime_global_ptr () const noexcept
+	RuntimeGlobal* runtime_global_ptr () noexcept
 	{
 		return data_holder_.runtime_global_ptr ();
 	}
@@ -162,7 +163,7 @@ public:
 		return data_holder_.runtime_global ();
 	}
 
-	CurrentDirContext* current_dir_ptr () const noexcept
+	CurrentDirContext* current_dir_ptr () noexcept
 	{
 		return data_holder_.current_dir_ptr ();
 	}
@@ -172,40 +173,79 @@ public:
 		return data_holder_.current_dir ();
 	}
 
-	bool core_context () const noexcept
+	bool core_context () noexcept
 	{
 		return core_context_;
 	}
 
-	FileDescriptors get_inherited_files (unsigned create_std_mask) const;
-
-	Nirvana::Locale::_ptr_type locale () noexcept
-	{
-		if (!locale_)
-			locale_ = locale_default ();
-		return locale_;
-	}
-
-	void locale (Nirvana::Locale::_ptr_type loc) noexcept
-	{
-		locale_ = loc;
-	}
+	FileDescriptors get_inherited_files (unsigned create_std_mask);
 
 	CORBA::Core::ValueList& value_list () noexcept
 	{
 		return value_list_;
 	}
 
+	Nirvana::Locale::_ptr_type cur_locale () noexcept
+	{
+		Nirvana::Locale::_ptr_type ret = locale ();
+		if (!ret)
+			ret = global_locale ();
+		return ret;
+	}
+
+	void set_global_locale (Nirvana::Locale::_ptr_type loc) noexcept
+	{
+		global_locale_ = loc;
+	}
+
+	typedef int locale_t;
+	static const locale_t GLOBAL_LOCALE = -1;
+
+	locale_t add_locale (Nirvana::Locale::_ptr_type loc)
+	{
+		return data_holder_.locale_context ().add_locale (loc);
+	}
+
+	locale_t duplocale (locale_t locobj)
+	{
+		return data_holder_.locale_context ().add_locale (get_locale (locobj));
+	}
+
+	void freelocale (locale_t locobj) noexcept
+	{
+		LocaleContext* lc = data_holder_.locale_context_ptr ();
+		if (lc)
+			lc->freelocale (locobj);
+	}
+
+	locale_t uselocale (locale_t locobj)
+	{
+		locale_t ret;
+		LocaleContext* lc = data_holder_.locale_context_ptr ();
+		if (lc) {
+			if (0 == locobj)
+				ret = lc->cur_locale ();
+			else
+				ret = lc->uselocale (GLOBAL_LOCALE == locobj ? 0 : locobj);
+		}	else if (0 != locobj && GLOBAL_LOCALE != locobj)
+			throw_BAD_PARAM (make_minor_errno (EINVAL));
+		else
+			ret = GLOBAL_LOCALE;
+		return ret;
+	}
+
+	Nirvana::Locale::_ref_type get_locale (locale_t locobj);
+
 private:
 	static Ref <MemContext> create (Ref <Heap>&& heap, bool class_library_init, bool core_context);
 
 	~MemContext ();
+
 	void destroy (ExecDomain& cur_ed) noexcept;
 
 	MemContext (Ref <Heap>&& heap, bool class_library_init, bool core_context) noexcept;
 
 	MemContext (const MemContext&) = delete;
-
 	MemContext& operator = (const MemContext&) = delete;
 
 	void _add_ref () noexcept
@@ -214,6 +254,15 @@ private:
 	}
 
 	void _remove_ref () noexcept;
+
+	Nirvana::Locale::_ptr_type locale () noexcept;
+
+	Nirvana::Locale::_ptr_type global_locale ()
+	{
+		if (!global_locale_)
+			global_locale_ = locale_default ();
+		return global_locale_;
+	}
 
 private:
 	class CreateRef : public Ref <MemContext>
@@ -224,7 +273,7 @@ private:
 		{}
 	};
 
-	class DataHolder32
+	class DataHolderSimple
 	{
 	public:
 		RuntimeSupportContext& runtime_support ()
@@ -232,7 +281,7 @@ private:
 			return data ();
 		}
 
-		RuntimeSupportContext* runtime_support_ptr () noexcept
+		RuntimeSupportContext* runtime_support_ptr () const noexcept
 		{
 			return data_ptr ();
 		}
@@ -242,12 +291,12 @@ private:
 			return data ();
 		}
 
-		DeadlinePolicyContext* deadline_policy_ptr () noexcept
+		DeadlinePolicyContext* deadline_policy_ptr () const noexcept
 		{
 			return data_ptr ();
 		}
 
-		TLS_Context* tls_ptr () const noexcept
+		TLS_Context* tls_ptr () noexcept
 		{
 			return data_ptr ();
 		}
@@ -287,6 +336,11 @@ private:
 			return data ();
 		}
 
+		LocaleContext* locale_context_ptr () const noexcept
+		{
+			return data_ptr ();
+		}
+
 	private:
 		class Data : public UserObject,
 			public RuntimeSupportContext,
@@ -294,7 +348,8 @@ private:
 			public RuntimeGlobal,
 			public TLS_Context,
 			public CurrentDirContext,
-			public FileDescriptorsContext
+			public FileDescriptorsContext,
+			public LocaleContext
 		{};
 
 		Data& data ()
@@ -313,17 +368,17 @@ private:
 		std::unique_ptr <Data> data_;
 	};
 
-	class DataHolder64
+	class DataHolder32
 	{
 	public:
 		RuntimeSupportContext& runtime_support ()
 		{
-			return data0 ();
+			return data1 ();
 		}
 
-		RuntimeSupportContext* runtime_support_ptr () noexcept
+		RuntimeSupportContext* runtime_support_ptr () const noexcept
 		{
-			return data_ptr0 ();
+			return data_ptr1 ();
 		}
 
 		DeadlinePolicyContext& deadline_policy ()
@@ -331,7 +386,7 @@ private:
 			return data0 ();
 		}
 
-		DeadlinePolicyContext* deadline_policy_ptr () noexcept
+		DeadlinePolicyContext* deadline_policy_ptr () const noexcept
 		{
 			return data_ptr0 ();
 		}
@@ -376,17 +431,28 @@ private:
 			return data0 ();
 		}
 
+		LocaleContext* locale_context_ptr () const noexcept
+		{
+			return data_ptr1 ();
+		}
+
+		LocaleContext& locale_context ()
+		{
+			return data1 ();
+		}
+
 	private:
 		class Data0 : public UserObject,
-			public RuntimeSupportContext,
 			public DeadlinePolicyContext,
 			public TLS_Context,
 			public CurrentDirContext
 		{};
 
 		class Data1 : public UserObject,
+			public RuntimeSupportContext,
 			public RuntimeGlobal,
-			public FileDescriptorsContext
+			public FileDescriptorsContext,
+			public LocaleContext
 		{};
 
 		Data0& data0 ()
@@ -418,6 +484,138 @@ private:
 		std::unique_ptr <Data1> data1_;
 	};
 
+	class DataHolder64
+	{
+	public:
+		RuntimeSupportContext& runtime_support ()
+		{
+			return data1 ();
+		}
+
+		RuntimeSupportContext* runtime_support_ptr () const noexcept
+		{
+			return data_ptr1 ();
+		}
+
+		DeadlinePolicyContext& deadline_policy ()
+		{
+			return data0 ();
+		}
+
+		DeadlinePolicyContext* deadline_policy_ptr () const noexcept
+		{
+			return data_ptr0 ();
+		}
+
+		TLS_Context* tls_ptr () const noexcept
+		{
+			return data_ptr0 ();
+		}
+
+		TLS_Context& tls ()
+		{
+			return data0 ();
+		}
+
+		FileDescriptorsContext* file_descriptors_ptr () const noexcept
+		{
+			return data_ptr2 ();
+		}
+
+		FileDescriptorsContext& file_descriptors ()
+		{
+			return data2 ();
+		}
+
+		RuntimeGlobal* runtime_global_ptr () const noexcept
+		{
+			return data_ptr1 ();
+		}
+
+		RuntimeGlobal& runtime_global ()
+		{
+			return data1 ();
+		}
+
+		CurrentDirContext* current_dir_ptr () const noexcept
+		{
+			return data_ptr0 ();
+		}
+
+		CurrentDirContext& current_dir ()
+		{
+			return data0 ();
+		}
+
+		LocaleContext* locale_context_ptr () const noexcept
+		{
+			return data_ptr2 ();
+		}
+
+		LocaleContext& locale_context ()
+		{
+			return data2 ();
+		}
+
+	private:
+		class Data0 : public UserObject,
+			public DeadlinePolicyContext,
+			public TLS_Context,
+			public CurrentDirContext
+		{};
+
+		class Data1 : public UserObject,
+			public RuntimeSupportContext,
+			public RuntimeGlobal
+		{};
+
+		class Data2 : public UserObject,
+			public FileDescriptorsContext,
+			public LocaleContext
+		{};
+
+		Data0& data0 ()
+		{
+			if (!data0_)
+				data0_.reset (new Data0 ());
+			return *data0_;
+		}
+
+		Data0* data_ptr0 () const noexcept
+		{
+			return data0_.get ();
+		}
+
+		Data1& data1 ()
+		{
+			if (!data1_)
+				data1_.reset (new Data1 ());
+			return *data1_;
+		}
+
+		Data1* data_ptr1 () const noexcept
+		{
+			return data1_.get ();
+		}
+
+		Data2& data2 ()
+		{
+			if (!data2_)
+				data2_.reset (new Data2 ());
+			return *data2_;
+		}
+
+		Data2* data_ptr2 () const noexcept
+		{
+			return data2_.get ();
+		}
+
+	private:
+		std::unique_ptr <Data0> data0_;
+		std::unique_ptr <Data1> data1_;
+		std::unique_ptr <Data2> data2_;
+	};
+
 	typedef std::conditional <sizeof (void*) < 8, DataHolder32, DataHolder64>::type DataHolder;
 
 	class Replacer;
@@ -426,12 +624,12 @@ private:
 
 private:
 	Ref <Heap> heap_;
+	DataHolder data_holder_;
+	Nirvana::Locale::_ref_type global_locale_;
+	CORBA::Core::ValueList value_list_;
 	AtomicCounter <false> ref_cnt_;
 	bool class_library_init_;
 	bool core_context_;
-	DataHolder data_holder_;
-	Nirvana::Locale::_ref_type locale_;
-	CORBA::Core::ValueList value_list_;
 };
 
 }
