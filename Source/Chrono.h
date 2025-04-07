@@ -67,10 +67,10 @@ public:
 		Port::Chrono::set_UTC (t);
 	}
 
-	/// System clock frequency, Hz.
-	static const uint64_t system_clock_frequency () noexcept
+	/// System clock resolution.
+	static const TimeBase::TimeT& system_clock_resolution () noexcept
 	{
-		return Port::Chrono::system_clock_frequency ();
+		return Port::Chrono::system_clock_resolution ();
 	}
 
 	/// Duration since system startup in 100 ns intervals.
@@ -79,10 +79,10 @@ public:
 		return Port::Chrono::steady_clock ();
 	}
 
-	/// Steady clock frequency, Hz.
-	static const uint64_t steady_clock_frequency () noexcept
+	/// Steady clock resolution.
+	static const SteadyTime steady_clock_resolution () noexcept
 	{
-		return Port::Chrono::steady_clock_frequency ();
+		return Port::Chrono::steady_clock_resolution ();
 	}
 
 	/// Duration since system startup with maximal possible precision.
