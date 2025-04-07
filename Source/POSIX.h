@@ -56,9 +56,24 @@ public:
 		return Core::Chrono::UTC ();
 	}
 
+	static void set_UTC (const TimeBase::TimeT& t)
+	{
+		Core::Chrono::set_UTC (t);
+	}
+
+	static IDL::Type <uint64_t>::ConstRef _s__get_system_clock_frequency (CORBA::Internal::Bridge <POSIX>* _b, CORBA::Internal::Interface* _env)
+	{
+		return IDL::Type <uint64_t>::ret (Core::Chrono::system_clock_frequency ());
+	}
+
 	static SteadyTime _s_steady_clock (CORBA::Internal::Bridge <POSIX>* _b, CORBA::Internal::Interface* _env)
 	{
 		return Core::Chrono::steady_clock ();
+	}
+
+	static IDL::Type <uint64_t>::ConstRef _s__get_steady_clock_frequency (CORBA::Internal::Bridge <POSIX>* _b, CORBA::Internal::Interface* _env)
+	{
+		return IDL::Type <uint64_t>::ret (Core::Chrono::steady_clock_frequency ());
 	}
 
 	static DeadlineTime _s_deadline_clock (CORBA::Internal::Bridge <POSIX>* _b, CORBA::Internal::Interface* _env)
@@ -66,9 +81,9 @@ public:
 		return Core::Chrono::deadline_clock ();
 	}
 
-	static IDL::Type <DeadlineTime>::ConstRef _s__get_deadline_clock_frequency (CORBA::Internal::Bridge <POSIX>* _b, CORBA::Internal::Interface* _env)
+	static IDL::Type <uint64_t>::ConstRef _s__get_deadline_clock_frequency (CORBA::Internal::Bridge <POSIX>* _b, CORBA::Internal::Interface* _env)
 	{
-		return IDL::Type <DeadlineTime>::ret (Core::Chrono::deadline_clock_frequency ());
+		return IDL::Type <uint64_t>::ret (Core::Chrono::deadline_clock_frequency ());
 	}
 
 	static int* error_number ()

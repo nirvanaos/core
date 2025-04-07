@@ -60,13 +60,32 @@ public:
 		return Port::Chrono::UTC ();
 	}
 
+	/// Set current UTC time.
+	/// \param t UTC time.
+	static void set_UTC (const TimeBase::TimeT& t)
+	{
+		Port::Chrono::set_UTC (t);
+	}
+
+	/// System clock frequency, Hz.
+	static const uint64_t system_clock_frequency () noexcept
+	{
+		return Port::Chrono::system_clock_frequency ();
+	}
+
 	/// Duration since system startup in 100 ns intervals.
 	static SteadyTime steady_clock () noexcept
 	{
 		return Port::Chrono::steady_clock ();
 	}
 
-	/// Duration since system startup as DeadlineTime.
+	/// Steady clock frequency, Hz.
+	static const uint64_t steady_clock_frequency () noexcept
+	{
+		return Port::Chrono::steady_clock_frequency ();
+	}
+
+	/// Duration since system startup with maximal possible precision.
 	static DeadlineTime deadline_clock () noexcept
 	{
 		return Port::Chrono::deadline_clock ();
