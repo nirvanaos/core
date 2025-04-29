@@ -313,29 +313,21 @@ public:
 	{
 		Core::MemContext* mc = Core::MemContext::current_ptr ();
 		if (mc)
-			return mc->cur_locale ();
+			return mc->locale ();
 		else
 			return nullptr;
+	}
+
+	static void cur_locale (Locale::_ptr_type newloc)
+	{
+		Core::MemContext* mc = Core::MemContext::current_ptr ();
+		if (mc)
+			mc->locale (newloc);
 	}
 
 	static Nirvana::Locale::_ref_type create_locale (int mask, const IDL::String& name, Nirvana::Locale::_ptr_type base)
 	{
 		return Core::locale_create (mask, name, base);
-	}
-
-	static void set_global_locale (Nirvana::Locale::_ptr_type loc)
-	{
-		Core::MemContext::current ().set_global_locale (loc);
-	}
-
-	static int add_locale (Nirvana::Locale::_ptr_type loc)
-	{
-		return Core::MemContext::current ().add_locale (loc);
-	}
-
-	static Nirvana::Locale::_ref_type get_locale (int locobj)
-	{
-		return Core::MemContext::current ().get_locale (locobj);
 	}
 
 private:

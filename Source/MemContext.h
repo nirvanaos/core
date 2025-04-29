@@ -35,7 +35,6 @@
 #include "TLS_Context.h"
 #include "FileDescriptorsContext.h"
 #include "CurrentDirContext.h"
-#include "LocaleContext.h"
 #include "UserObject.h"
 #include "LocaleImpl.h"
 #include "ORB/ValueList.h"
@@ -185,56 +184,15 @@ public:
 		return value_list_;
 	}
 
-	Nirvana::Locale::_ptr_type cur_locale () noexcept
+	Nirvana::Locale::_ptr_type locale () noexcept
 	{
-		Nirvana::Locale::_ptr_type ret = locale ();
-		if (!ret)
-			ret = global_locale ();
-		return ret;
+		return locale_;
 	}
 
-	void set_global_locale (Nirvana::Locale::_ptr_type loc) noexcept
+	void locale (Nirvana::Locale::_ptr_type newloc) noexcept
 	{
-		global_locale_ = loc;
+		locale_ = newloc;
 	}
-
-	typedef int locale_t;
-	static const locale_t GLOBAL_LOCALE = -1;
-
-	locale_t add_locale (Nirvana::Locale::_ptr_type loc)
-	{
-		return data_holder_.locale_context ().add_locale (loc);
-	}
-
-	locale_t duplocale (locale_t locobj)
-	{
-		return data_holder_.locale_context ().add_locale (get_locale (locobj));
-	}
-
-	void freelocale (locale_t locobj) noexcept
-	{
-		LocaleContext* lc = data_holder_.locale_context_ptr ();
-		if (lc)
-			lc->freelocale (locobj);
-	}
-
-	locale_t uselocale (locale_t locobj)
-	{
-		locale_t ret;
-		LocaleContext* lc = data_holder_.locale_context_ptr ();
-		if (lc) {
-			if (0 == locobj)
-				ret = lc->cur_locale ();
-			else
-				ret = lc->uselocale (GLOBAL_LOCALE == locobj ? 0 : locobj);
-		}	else if (0 != locobj && GLOBAL_LOCALE != locobj)
-			throw_BAD_PARAM (make_minor_errno (EINVAL));
-		else
-			ret = GLOBAL_LOCALE;
-		return ret;
-	}
-
-	Nirvana::Locale::_ref_type get_locale (locale_t locobj);
 
 private:
 	static Ref <MemContext> create (Ref <Heap>&& heap, bool class_library_init, bool core_context);
@@ -254,15 +212,6 @@ private:
 	}
 
 	void _remove_ref () noexcept;
-
-	Nirvana::Locale::_ptr_type locale () noexcept;
-
-	Nirvana::Locale::_ptr_type global_locale ()
-	{
-		if (!global_locale_)
-			global_locale_ = locale_default ();
-		return global_locale_;
-	}
 
 private:
 	class CreateRef : public Ref <MemContext>
@@ -336,11 +285,6 @@ private:
 			return data ();
 		}
 
-		LocaleContext* locale_context_ptr () const noexcept
-		{
-			return data_ptr ();
-		}
-
 	private:
 		class Data : public UserObject,
 			public RuntimeSupportContext,
@@ -348,8 +292,7 @@ private:
 			public RuntimeGlobal,
 			public TLS_Context,
 			public CurrentDirContext,
-			public FileDescriptorsContext,
-			public LocaleContext
+			public FileDescriptorsContext
 		{};
 
 		Data& data ()
@@ -431,16 +374,6 @@ private:
 			return data0 ();
 		}
 
-		LocaleContext* locale_context_ptr () const noexcept
-		{
-			return data_ptr1 ();
-		}
-
-		LocaleContext& locale_context ()
-		{
-			return data1 ();
-		}
-
 	private:
 		class Data0 : public UserObject,
 			public DeadlinePolicyContext,
@@ -451,8 +384,7 @@ private:
 		class Data1 : public UserObject,
 			public RuntimeSupportContext,
 			public RuntimeGlobal,
-			public FileDescriptorsContext,
-			public LocaleContext
+			public FileDescriptorsContext
 		{};
 
 		Data0& data0 ()
@@ -547,16 +479,6 @@ private:
 			return data0 ();
 		}
 
-		LocaleContext* locale_context_ptr () const noexcept
-		{
-			return data_ptr2 ();
-		}
-
-		LocaleContext& locale_context ()
-		{
-			return data2 ();
-		}
-
 	private:
 		class Data0 : public UserObject,
 			public DeadlinePolicyContext,
@@ -570,8 +492,7 @@ private:
 		{};
 
 		class Data2 : public UserObject,
-			public FileDescriptorsContext,
-			public LocaleContext
+			public FileDescriptorsContext
 		{};
 
 		Data0& data0 ()
@@ -625,7 +546,7 @@ private:
 private:
 	Ref <Heap> heap_;
 	DataHolder data_holder_;
-	Nirvana::Locale::_ref_type global_locale_;
+	Nirvana::Locale::_ref_type locale_;
 	CORBA::Core::ValueList value_list_;
 	AtomicCounter <false> ref_cnt_;
 	bool class_library_init_;

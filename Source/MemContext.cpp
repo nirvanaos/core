@@ -87,33 +87,7 @@ MemContext::MemContext (Ref <Heap>&& heap, bool class_library_init, bool core_co
 {
 	MemContext* parent = current_ptr ();
 	if (parent)
-		global_locale_ = parent->locale ();
-}
-
-Nirvana::Locale::_ptr_type MemContext::locale () noexcept
-{
-	Nirvana::Locale::_ptr_type ret = nullptr;
-	LocaleContext* context = data_holder_.locale_context_ptr ();
-	if (context)
-		ret = context->get_locale ();
-	if (!ret)
-		ret = global_locale_;
-	return ret;
-}
-
-Nirvana::Locale::_ref_type MemContext::get_locale (locale_t locobj)
-{
-	Nirvana::Locale::_ref_type ret;
-	if (GLOBAL_LOCALE == locobj)
-		ret = global_locale ();
-	else {
-		LocaleContext* lc = data_holder_.locale_context_ptr ();
-		if (lc)
-			ret = data_holder_.locale_context ().get_locale (locobj);
-		if (!ret)
-			throw_BAD_PARAM (make_minor_errno (EINVAL));
-	}
-	return ret;
+		locale_ = parent->locale ();
 }
 
 inline
