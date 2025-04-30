@@ -80,7 +80,7 @@ public:
 	}
 
 	/// Steady clock resolution.
-	static const SteadyTime steady_clock_resolution () noexcept
+	static const SteadyTime& steady_clock_resolution () noexcept
 	{
 		return Port::Chrono::steady_clock_resolution ();
 	}
