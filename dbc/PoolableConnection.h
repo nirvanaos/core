@@ -33,10 +33,10 @@
 
 namespace NDBC {
 
-template <class I>
+template <class Itf>
 struct StatementPool
 {
-	RefPool <I> types [(size_t)ResultSet::Type::TYPE_SCROLL_SENSITIVE + 1];
+	RefPool <Itf> types [(size_t)ResultSet::Type::TYPE_SCROLL_SENSITIVE + 1];
 
 	void clear () noexcept
 	{

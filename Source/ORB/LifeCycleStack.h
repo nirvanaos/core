@@ -39,13 +39,13 @@ namespace Core {
 class LifeCycleStack
 {
 public:
-	template <class I>
+	template <class Itf>
 	static Internal::Interface* __duplicate (Internal::Interface* itf, Internal::Interface* env)
 	{
 		return itf;
 	}
 
-	template <class I>
+	template <class Itf>
 	static void __release (Internal::Interface* itf)
 	{}
 };

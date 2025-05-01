@@ -134,9 +134,9 @@ protected:
 	DataType data_;
 };
 
-template <class Data, class I, class S>
+template <class Data, class Itf, class S>
 class PoolableS : 
-	public CORBA::servant_traits <I>::template Servant <S>,
+	public CORBA::servant_traits <Itf>::template Servant <S>,
 	public Poolable <Data>
 {
 	using Base = Poolable <Data>;

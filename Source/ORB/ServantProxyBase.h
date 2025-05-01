@@ -99,8 +99,8 @@ public:
 	virtual Object::_ref_type _get_component () override;
 
 protected:
-	template <class I>
-	ServantProxyBase (Internal::I_ptr <I> servant, Object::_ptr_type comp) :
+	template <class Itf>
+	ServantProxyBase (Internal::I_ptr <Itf> servant, Object::_ptr_type comp) :
 		ProxyManager (get_primary_interface_id (servant), true),
 		ref_cnt_ (0),
 		sync_context_ (&Nirvana::Core::SyncContext::current ()),
@@ -121,8 +121,8 @@ protected:
 
 	virtual ~ServantProxyBase ();
 
-	template <class I>
-	void set_servant (Internal::I_ptr <I> servant)
+	template <class Itf>
+	void set_servant (Internal::I_ptr <Itf> servant)
 	{
 		// Fill implementation pointers
 		for (InterfaceEntry* ie = metadata_.interfaces.begin (); ie != metadata_.interfaces.end (); ++ie) {
@@ -147,8 +147,8 @@ protected:
 	}
 
 private:
-	template <class I>
-	static const Char* get_primary_interface_id (Internal::I_ptr <I> servant)
+	template <class Itf>
+	static const Char* get_primary_interface_id (Internal::I_ptr <Itf> servant)
 	{
 		Internal::Interface::_ptr_type primary = servant->_query_interface (nullptr);
 		if (!primary)

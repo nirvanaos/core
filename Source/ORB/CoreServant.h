@@ -51,10 +51,10 @@ public:
 	// Called from the servant destructor for dynamic objects.
 	// Or by the Binder for static objects.
 	// On release reference we delete the proxy.
-	template <class I>
+	template <class Itf>
 	static void __release (Internal::Interface* itf)
 	{
-		S& srv = S::_implementation (static_cast <Internal::Bridge <I>*> (itf));
+		S& srv = S::_implementation (static_cast <Internal::Bridge <Itf>*> (itf));
 
 		srv.delete_servant (true);
 

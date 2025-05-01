@@ -68,14 +68,14 @@ public:
 	Connection& operator = (const Connection&) = delete;
 	Connection& operator = (Connection&&) = delete;
 
-	template <class I>
+	template <class Itf>
 	class StatementT
 	{
 	public:
 		StatementT () noexcept
 		{}
 
-		StatementT (I::_ref_type&& ref) noexcept :
+		StatementT (Itf::_ref_type&& ref) noexcept :
 			ref_ (std::move (ref))
 		{}
 
@@ -91,7 +91,7 @@ public:
 				ref_->close ();
 		}
 
-		I::_ptr_type operator -> () const noexcept
+		Itf::_ptr_type operator -> () const noexcept
 		{
 			return ref_;
 		}
@@ -107,7 +107,7 @@ public:
 		StatementT& operator = (const StatementT& src) = delete;
 
 	private:
-		I::_ref_type ref_;
+		Itf::_ref_type ref_;
 	};
 
 	using PreparedStatement = StatementT <NDBC::PreparedStatement>;

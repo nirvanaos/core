@@ -88,15 +88,15 @@ private:
 	StatementBase::_ptr_type base_;
 };
 
-template <class I>
-using RefPool = Pool <typename I::_ref_type>;
+template <class Itf>
+using RefPool = Pool <typename Itf::_ref_type>;
 
-template <class I, class S>
+template <class Itf, class S>
 class PoolableStatementS :
 	public PoolableStatementBase,
-	public PoolableS <typename I::_ref_type, I, S>
+	public PoolableS <typename Itf::_ref_type, Itf, S>
 {
-	using Base = PoolableS <typename I::_ref_type, I, S>;
+	using Base = PoolableS <typename Itf::_ref_type, Itf, S>;
 
 public:
 	using PoolType = Base::PoolType;
@@ -122,7 +122,7 @@ public:
 	}
 
 protected:
-	PoolableStatementS (PoolableConnection& conn, PoolType& pool, typename I::_ref_type&& impl)
+	PoolableStatementS (PoolableConnection& conn, PoolType& pool, typename Itf::_ref_type&& impl)
 		noexcept :
 		PoolableStatementBase (conn, impl),
 		Base (pool, std::move (impl))

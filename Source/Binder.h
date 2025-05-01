@@ -98,21 +98,21 @@ public:
 	/// Implements System::bind_interface()
 	static BindResult bind_interface (CORBA::Internal::String_in name, CORBA::Internal::String_in iid);
 
-	template <class I>
-	static CORBA::Internal::I_ref <I> bind_interface (CORBA::Internal::String_in name)
+	template <class Itf>
+	static CORBA::Internal::I_ref <Itf> bind_interface (CORBA::Internal::String_in name)
 	{
-		return bind_interface (name, CORBA::Internal::RepIdOf <I>::id).itf.template downcast <I> ();
+		return bind_interface (name, CORBA::Internal::RepIdOf <Itf>::id).itf.template downcast <Itf> ();
 	}
 
 	static BindResult load_and_bind (int32_t mod_id, Nirvana::AccessDirect::_ptr_type binary,
 		CORBA::Internal::String_in name, CORBA::Internal::String_in iid);
 
-	template <class I>
-	static CORBA::Internal::I_ref <I> load_and_bind (int32_t mod_id,
+	template <class Itf>
+	static CORBA::Internal::I_ref <Itf> load_and_bind (int32_t mod_id,
 		Nirvana::AccessDirect::_ptr_type binary, CORBA::Internal::String_in name)
 	{
-		return load_and_bind (mod_id, binary, name, CORBA::Internal::RepIdOf <I>::id).itf
-			.template downcast <I> ();
+		return load_and_bind (mod_id, binary, name, CORBA::Internal::RepIdOf <Itf>::id).itf
+			.template downcast <Itf> ();
 	}
 
 	/// Bind executable.

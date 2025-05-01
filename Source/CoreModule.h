@@ -45,13 +45,13 @@ public:
 		return 0;
 	}
 
-	template <class I>
+	template <class Itf>
 	static CORBA::Internal::Interface* __duplicate (CORBA::Internal::Interface* itf, CORBA::Internal::Interface*)
 	{
 		return itf;
 	}
 
-	template <class I>
+	template <class Itf>
 	static void __release (CORBA::Internal::Interface*)
 	{}
 
