@@ -29,7 +29,6 @@
 #pragma once
 
 #include <CORBA/CORBA.h>
-#include <signal.h>
 
 namespace Nirvana {
 namespace Core {

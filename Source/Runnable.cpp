@@ -26,7 +26,7 @@
 #include "pch.h"
 #include "Runnable.h"
 #include "unrecoverable_error.h"
-#include <signal.h>
+#include <Nirvana/signal.h>
 
 namespace Nirvana {
 namespace Core {

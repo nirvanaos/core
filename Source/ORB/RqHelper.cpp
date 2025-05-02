@@ -25,7 +25,7 @@
 */
 #include "../pch.h"
 #include "RqHelper.h"
-#include <signal.h>
+#include <Nirvana/signal.h>
 
 namespace CORBA {
 namespace Core {

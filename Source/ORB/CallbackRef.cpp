@@ -29,7 +29,6 @@
 #include "call_handler.h"
 #include "ProxyManager.h"
 #include "../unrecoverable_error.h"
-#include <signal.h>
 
 namespace CORBA {
 using namespace Internal;
