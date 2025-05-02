@@ -38,7 +38,7 @@
 #include "ConditionalCreator.h"
 #include <limits>
 #include <utility>
-#include <Nirvana/signal.h>
+#include <Nirvana/signal_defs.h>
 
 namespace Nirvana {
 namespace Core {

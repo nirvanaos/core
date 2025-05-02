@@ -27,7 +27,7 @@
 #include "LocaleImpl.h"
 #include <CORBA/Server.h>
 #include <Nirvana/nls_s.h>
-#include <Nirvana/locale.h>
+#include <Nirvana/locale_defs.h>
 #include "Heap.h"
 #include "CoreInterface.h"
 #include <algorithm>

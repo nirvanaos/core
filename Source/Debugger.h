@@ -29,7 +29,7 @@
 #include "RuntimeSupport.h"
 #include "ExecDomain.h"
 #include "SharedAllocator.h"
-#include <Nirvana/signal.h>
+#include <Nirvana/signal_defs.h>
 #include <Port/Debugger.h>
 
 namespace Nirvana {

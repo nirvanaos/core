@@ -29,7 +29,7 @@
 #include <Nirvana/Nirvana.h>
 #include <Nirvana/POSIX_s.h>
 #include <Nirvana/nls.h>
-#include <Nirvana/signal.h>
+#include <Nirvana/signal_defs.h>
 #include "Signals.h"
 #include "FileDescriptors.h"
 #include "CurrentDir.h"

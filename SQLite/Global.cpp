@@ -31,7 +31,7 @@
 #include <Nirvana/System.h>
 #include <Nirvana/POSIX.h>
 #include <Nirvana/posix_defs.h>
-#include <Nirvana/signal.h>
+#include <Nirvana/signal_defs.h>
 
 namespace SQLite {
 

@@ -25,7 +25,7 @@
 */
 #include "pch.h"
 #include "Signals.h"
-#include <Nirvana/signal.h>
+#include <Nirvana/signal_defs.h>
 #include <algorithm>
 
 namespace Nirvana {
