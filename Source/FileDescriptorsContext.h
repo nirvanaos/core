@@ -48,11 +48,11 @@ public:
 	FileDescriptorsContext ()
 	{}
 
-	unsigned fd_add (Access::_ptr_type access, unsigned flags = 0, FileSize pos = 0)
+	unsigned fd_add (Access::_ref_type&& access, unsigned flags = 0, FileSize pos = 0)
 	{
 		// Allocate file descriptor cell
 		size_t i = alloc_fd ();
-		file_descriptors_ [i].attach (make_fd (access, flags, pos));
+		file_descriptors_ [i].attach (make_fd (std::move (access), flags, pos));
 
 		return (unsigned)(i + STD_CNT);
 	}
@@ -112,7 +112,7 @@ public:
 
 	unsigned flags (unsigned ifd)
 	{
-		return get_open_fd (ifd).ptr ()->flags ();
+		return get_open_fd (ifd).ref ()->flags ();
 	}
 
 	void flags (unsigned ifd, unsigned flags)
@@ -127,7 +127,7 @@ public:
 
 	bool isatty (unsigned ifd)
 	{
-		return get_open_fd (ifd).ptr ()->isatty ();
+		return get_open_fd (ifd).ref ()->isatty ();
 	}
 
 	void get_lock (unsigned ifd, struct flock& lk)
@@ -142,6 +142,11 @@ public:
 			throw_TRANSIENT (make_minor_errno (EAGAIN));
 	}
 
+	void stat (unsigned ifd, FileStat& fs)
+	{
+		get_open_fd (ifd).ref ()->stat (fs);
+	}
+
 	void set_inherited_files (const FileDescriptors& files);
 	FileDescriptors get_inherited_files (unsigned* std_mask) const;
 
@@ -151,8 +156,8 @@ private:
 		static const unsigned PUSH_BACK_MAX = 3;
 
 	public:
-		virtual Access::_ref_type access () const = 0;
-		virtual void close () const = 0;
+		void close () const;
+		void stat (FileStat& fs) const;
 		virtual size_t read (void* p, size_t size) = 0;
 		virtual void write (const void* p, size_t size) = 0;
 		virtual FileSize seek (unsigned method, FileOff off) = 0;
@@ -176,7 +181,8 @@ private:
 		}
 
 	protected:
-		Descriptor () :
+		Descriptor (Access::_ref_type&& access) :
+			access_base_ (std::move (access)),
 			descriptor_ref_cnt_ (1)
 		{}
 
@@ -184,6 +190,9 @@ private:
 		{}
 
 		static LockType get_lock_type (int l_type);
+
+	protected:
+		Access::_ref_type access_base_;
 
 	private:
 		unsigned descriptor_ref_cnt_;
@@ -262,7 +271,7 @@ private:
 	class DescriptorDirect;
 
 private:
-	static DescriptorRef make_fd (CORBA::AbstractBase::_ptr_type access, unsigned flags, FileSize pos);
+	static DescriptorRef make_fd (Access::_ref_type&& access, unsigned flags, FileSize pos);
 	
 	DescriptorInfo& get_fd (unsigned fd);
 	

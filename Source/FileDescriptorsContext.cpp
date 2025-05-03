@@ -35,7 +35,17 @@ namespace Core {
 
 void FileDescriptorsContext::Descriptor::get_file_descr (FileDescr& fd) const
 {
-	fd.access (access ()->dup (0, 0));
+	fd.access (access_base_->dup (0, 0));
+}
+
+void FileDescriptorsContext::Descriptor::close () const
+{
+	access_base_->close ();
+}
+
+void FileDescriptorsContext::Descriptor::stat (FileStat& fs) const
+{
+	access_base_->file ()->stat (fs);
 }
 
 LockType FileDescriptorsContext::Descriptor::get_lock_type (int l_type)
@@ -55,12 +65,11 @@ LockType FileDescriptorsContext::Descriptor::get_lock_type (int l_type)
 class FileDescriptorsContext::DescriptorBuf : public DescriptorBase
 {
 public:
-	DescriptorBuf (AccessBuf::_ref_type&& access) :
+	DescriptorBuf (Access::_ref_type&& base, AccessBuf::_ref_type&& access) :
+		DescriptorBase (std::move (base)),
 		access_ (std::move (access))
 	{}
 
-	virtual Access::_ref_type access () const override;
-	virtual void close () const override;
 	virtual size_t read (void* p, size_t size) override;
 	virtual void write (const void* p, size_t size) override;
 	virtual FileSize seek (unsigned method, FileOff off) override;
@@ -82,7 +91,8 @@ private:
 class FileDescriptorsContext::DescriptorChar : public DescriptorBase
 {
 public:
-	DescriptorChar (AccessChar::_ref_type&& access) :
+	DescriptorChar (Access::_ref_type&& base, AccessChar::_ref_type&& access) :
+		DescriptorBase (std::move (base)),
 		access_ (std::move (access)),
 		flags_ (access_->flags ())
 	{
@@ -90,8 +100,6 @@ public:
 			access_->connect_pull_consumer (nullptr);
 	}
 
-	virtual Access::_ref_type access () const override;
-	virtual void close () const override;
 	virtual size_t read (void* p, size_t size) override;
 	virtual void write (const void* p, size_t size) override;
 	virtual FileSize seek (unsigned method, FileOff off) override;
@@ -112,14 +120,13 @@ private:
 class FileDescriptorsContext::DescriptorDirect : public DescriptorBase
 {
 public:
-	DescriptorDirect (AccessDirect::_ref_type&& access, unsigned flags, FileSize pos) :
+	DescriptorDirect (Access::_ref_type&& base, AccessDirect::_ref_type&& access, unsigned flags, FileSize pos) :
+		DescriptorBase (std::move (base)),
 		access_ (std::move (access)),
 		flags_ (flags),
 		pos_ (pos)
 	{}
 
-	virtual Access::_ref_type access () const override;
-	virtual void close () const override;
 	virtual size_t read (void* p, size_t size) override;
 	virtual void write (const void* p, size_t size) override;
 	virtual FileSize seek (unsigned method, FileOff off) override;
@@ -189,22 +196,23 @@ FileDescriptorsContext::DescriptorInfo& FileDescriptorsContext::get_open_fd (uns
 }
 
 FileDescriptorsContext::DescriptorRef FileDescriptorsContext::make_fd (
-	CORBA::AbstractBase::_ptr_type access, unsigned flags, FileSize pos)
+	Access::_ref_type&& access, unsigned flags, FileSize pos)
 {
-	CORBA::ValueBase::_ref_type val = access->_to_value ();
+	CORBA::AbstractBase::_ptr_type base = access;
+	CORBA::ValueBase::_ref_type val = base->_to_value ();
 	if (val) {
 		AccessBuf::_ref_type ab = AccessBuf::_downcast (val);
 		if (!ab)
 			throw_UNKNOWN (make_minor_errno (EIO));
-		return CORBA::make_reference <DescriptorBuf> (std::move (ab));
+		return CORBA::make_reference <DescriptorBuf> (std::move (access), std::move (ab));
 	} else {
-		CORBA::Object::_ref_type obj = access->_to_object ();
+		CORBA::Object::_ref_type obj = base->_to_object ();
 		AccessChar::_ref_type ac = AccessChar::_narrow (obj);
 		if (ac)
-			return CORBA::make_reference <DescriptorChar> (std::move (ac));
+			return CORBA::make_reference <DescriptorChar> (std::move (access), std::move (ac));
 		AccessDirect::_ref_type ad = AccessDirect::_narrow (obj);
 		if (ad)
-			return CORBA::make_reference <DescriptorDirect> (std::move (ad), flags, pos);
+			return CORBA::make_reference <DescriptorDirect> (std::move (access), std::move (ad), flags, pos);
 	}
 	throw_UNKNOWN (make_minor_errno (EIO));
 }
@@ -224,7 +232,7 @@ void FileDescriptorsContext::set_inherited_files (const FileDescriptors& files)
 		file_descriptors_.resize (max + 1 - StandardFileDescriptor::STD_CNT);
 	}
 	for (const auto& f : files) {
-		DescriptorRef fd = make_fd (f.access (), f.flags (), f.pos ());
+		DescriptorRef fd = make_fd (std::move (f.access ()), f.flags (), f.pos ());
 		fd->remove_descriptor_ref ();
 		for (auto d : f.descriptors ()) {
 			DescriptorInfo& fdr = get_fd ((unsigned)d);
@@ -263,36 +271,6 @@ FileDescriptors FileDescriptorsContext::get_inherited_files (unsigned* std_mask)
 		*std_mask = std;
 
 	return files;
-}
-
-Access::_ref_type FileDescriptorsContext::DescriptorBuf::access () const
-{
-	return access_;
-}
-
-Access::_ref_type FileDescriptorsContext::DescriptorChar::access () const
-{
-	return access_;
-}
-
-Access::_ref_type FileDescriptorsContext::DescriptorDirect::access () const
-{
-	return access_;
-}
-
-void FileDescriptorsContext::DescriptorBuf::close () const
-{
-	access_->close ();
-}
-
-void FileDescriptorsContext::DescriptorChar::close () const
-{
-	access_->close ();
-}
-
-void FileDescriptorsContext::DescriptorDirect::close () const
-{
-	access_->close ();
 }
 
 size_t FileDescriptorsContext::DescriptorBuf::read (void* p, size_t size)
@@ -492,7 +470,7 @@ FileSize FileDescriptorsContext::DescriptorChar::seek (unsigned method, FileOff 
 
 unsigned FileDescriptorsContext::DescriptorBuf::flags () const
 {
-	return access_->flags ();
+	return access_base_->flags ();
 }
 
 void FileDescriptorsContext::DescriptorBuf::flags (unsigned fl)
@@ -515,12 +493,12 @@ void FileDescriptorsContext::DescriptorChar::flags (unsigned fl)
 
 unsigned FileDescriptorsContext::DescriptorDirect::flags () const
 {
-	return access_->flags ();
+	return access_base_->flags ();
 }
 
 void FileDescriptorsContext::DescriptorDirect::flags (unsigned fl)
 {
-	access_->set_flags (POSIX_CHANGEABLE_FLAGS, fl);
+	access_base_->set_flags (POSIX_CHANGEABLE_FLAGS, fl);
 }
 
 void FileDescriptorsContext::DescriptorBuf::flush ()
@@ -544,7 +522,7 @@ bool FileDescriptorsContext::DescriptorBuf::isatty () const
 
 bool FileDescriptorsContext::DescriptorChar::isatty () const
 {
-	return true;
+	return access_->isatty ();
 }
 
 bool FileDescriptorsContext::DescriptorDirect::isatty () const

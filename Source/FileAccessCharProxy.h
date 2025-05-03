@@ -103,6 +103,12 @@ public:
 		return access_->clear_read_error ();
 	}
 
+	bool isatty () const
+	{
+		check ();
+		return true;
+	}
+
 	void connect_push_consumer (CosEventComm::PushConsumer::_ptr_type consumer)
 	{
 		check ();

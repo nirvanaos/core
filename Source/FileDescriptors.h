@@ -36,9 +36,9 @@ namespace Core {
 class FileDescriptors
 {
 public:
-	static unsigned fd_add (Access::_ptr_type access, unsigned flags)
+	static unsigned fd_add (Access::_ref_type&& access, unsigned flags)
 	{
-		return context ().fd_add (access, flags);
+		return context ().fd_add (std::move (access), flags);
 	}
 
 	static void close (unsigned ifd)
@@ -118,6 +118,11 @@ public:
 	static bool isatty (unsigned ifd)
 	{
 		return context_for_fd ().isatty (ifd);
+	}
+
+	static void stat (unsigned ifd, FileStat& fs)
+	{
+		return context_for_fd ().stat (ifd, fs);
 	}
 
 private:
