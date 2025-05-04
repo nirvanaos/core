@@ -48,6 +48,8 @@ class FileChar;
 class FileAccessChar : public UserObject
 {
 public:
+	virtual bool isatty () const = 0;
+
 	void write (const IDL::String& data)
 	{
 		while (write_request_) {

@@ -106,7 +106,7 @@ public:
 	bool isatty () const
 	{
 		check ();
-		return true;
+		return access_->isatty ();
 	}
 
 	void connect_push_consumer (CosEventComm::PushConsumer::_ptr_type consumer)
