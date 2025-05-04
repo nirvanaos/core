@@ -191,9 +191,9 @@ public:
 		Core::FileDescriptors::write (fd, p, size);
 	}
 
-	static FileSize seek (FilDesc fd, const FileOff& offset, uint_fast16_t whence)
+	static bool seek (FilDesc fd, const FileOff& offset, uint_fast16_t whence, FileSize& pos)
 	{
-		return Core::FileDescriptors::seek (fd, offset, whence);
+		return Core::FileDescriptors::seek (fd, offset, whence, pos);
 	}
 
 	static FilDesc fcntl (FilDesc fd, unsigned cmd, uintptr_t arg)

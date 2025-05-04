@@ -72,7 +72,7 @@ public:
 
 	virtual size_t read (void* p, size_t size) override;
 	virtual void write (const void* p, size_t size) override;
-	virtual FileSize seek (unsigned method, FileOff off) override;
+	virtual bool seek (unsigned method, FileOff off, FileSize& pos) override;
 	virtual unsigned flags () const override;
 	virtual void flags (unsigned fl) override;
 	virtual void flush () override;
@@ -102,7 +102,7 @@ public:
 
 	virtual size_t read (void* p, size_t size) override;
 	virtual void write (const void* p, size_t size) override;
-	virtual FileSize seek (unsigned method, FileOff off) override;
+	virtual bool seek (unsigned method, FileOff off, FileSize& pos) override;
 	virtual unsigned flags () const override;
 	virtual void flags (unsigned fl) override;
 	virtual void flush () override;
@@ -129,7 +129,7 @@ public:
 
 	virtual size_t read (void* p, size_t size) override;
 	virtual void write (const void* p, size_t size) override;
-	virtual FileSize seek (unsigned method, FileOff off) override;
+	virtual bool seek (unsigned method, FileOff off, FileSize& pos) override;
 	virtual unsigned flags () const override;
 	virtual void flags (unsigned fl) override;
 	virtual void flush () override;
@@ -389,11 +389,11 @@ void FileDescriptorsContext::DescriptorDirect::write (const void* p, size_t size
 	}
 }
 
-FileSize FileDescriptorsContext::DescriptorBuf::seek (unsigned method, FileOff off)
+bool FileDescriptorsContext::DescriptorBuf::seek (unsigned method, FileOff off, FileSize& pos)
 {
-	FileSize pos = calc_pos (method, off);
+	pos = calc_pos (method, off);
 	access_->position (pos);
-	return pos;
+	return true;
 }
 
 FileSize FileDescriptorsContext::DescriptorBuf::calc_pos (unsigned method, FileOff off) const
@@ -458,14 +458,15 @@ FileSize FileDescriptorsContext::DescriptorDirect::calc_pos (unsigned method, Fi
 	return pos + off;
 }
 
-FileSize FileDescriptorsContext::DescriptorDirect::seek (unsigned method, FileOff off)
+bool FileDescriptorsContext::DescriptorDirect::seek (unsigned method, FileOff off, FileSize& pos)
 {
-	return pos_ = calc_pos (method, off);
+	pos = pos_ = calc_pos (method, off);
+	return true;
 }
 
-FileSize FileDescriptorsContext::DescriptorChar::seek (unsigned method, FileOff off)
+bool FileDescriptorsContext::DescriptorChar::seek (unsigned method, FileOff off, FileSize& pos)
 {
-	throw_BAD_OPERATION (make_minor_errno (ESPIPE));
+	return false;
 }
 
 unsigned FileDescriptorsContext::DescriptorBuf::flags () const

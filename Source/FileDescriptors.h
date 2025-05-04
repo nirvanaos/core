@@ -56,9 +56,9 @@ public:
 		context_for_fd ().write (ifd, p, size);
 	}
 
-	static uint64_t seek (unsigned ifd, const int64_t& off, unsigned method)
+	static bool seek (unsigned ifd, const FileOff& off, unsigned method, FileSize& pos)
 	{
-		return context_for_fd ().seek (ifd, off, method);
+		return context_for_fd ().seek (ifd, off, method, pos);
 	}
 
 	static unsigned fcntl (unsigned ifd, int cmd, uintptr_t arg)

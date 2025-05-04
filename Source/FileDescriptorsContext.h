@@ -75,9 +75,9 @@ public:
 		get_open_fd (ifd).ref ()->write (p, size);
 	}
 
-	FileSize seek (unsigned ifd, const FileOff& off, unsigned method)
+	bool seek (unsigned ifd, const FileOff& off, unsigned method, FileSize& pos)
 	{
-		return get_open_fd (ifd).ref ()->seek (method, off);
+		return get_open_fd (ifd).ref ()->seek (method, off, pos);
 	}
 
 	unsigned dup (unsigned ifd, unsigned start)
@@ -160,7 +160,7 @@ private:
 		void stat (FileStat& fs) const;
 		virtual size_t read (void* p, size_t size) = 0;
 		virtual void write (const void* p, size_t size) = 0;
-		virtual FileSize seek (unsigned method, FileOff off) = 0;
+		virtual bool seek (unsigned method, FileOff off, FileSize& pos) = 0;
 		virtual unsigned flags () const = 0;
 		virtual void flags (unsigned fl) = 0;
 		virtual void flush () = 0;
