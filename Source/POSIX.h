@@ -238,7 +238,13 @@ public:
 	{
 		CosNaming::Name name;
 		Core::append_path (name, path, true);
-		name_service ()->unbind (name);
+		try {
+			name_service ()->unbind (name);
+		} catch (const CosNaming::NamingContext::NotFound& ex) {
+			throw_BAD_PARAM (make_minor_errno (ENOENT));
+		} catch (...) {
+			throw_BAD_PARAM (make_minor_errno (EINVAL));
+		}
 	}
 
 	static void rmdir (const IDL::String& path)
@@ -246,13 +252,18 @@ public:
 		CosNaming::Name name;
 		Core::append_path (name, path, true);
 		auto ns = name_service ();
-		Nirvana::Dir::_ref_type dir = Nirvana::Dir::_narrow (ns->resolve (name));
-		if (dir) {
-			dir->destroy ();
-			dir = nullptr;
-			ns->unbind (name);
-		} else
-			throw_BAD_PARAM (make_minor_errno (ENOTDIR));
+		try {
+			Nirvana::Dir::_ref_type dir = Nirvana::Dir::_narrow (ns->resolve (name));
+			if (dir) {
+				dir = nullptr;
+				ns->unbind (name);
+			} else
+				throw_BAD_PARAM (make_minor_errno (ENOTDIR));
+		} catch (const CosNaming::NamingContext::NotFound& ex) {
+			throw_BAD_PARAM (make_minor_errno (ENOENT));
+		} catch (...) {
+			throw_BAD_PARAM (make_minor_errno (EINVAL));
+		}
 	}
 
 	static void mkdir (const IDL::String& path, unsigned mode)
@@ -282,12 +293,18 @@ public:
 		Core::append_path (new_name, new_path, true);
 
 		CosNaming::NamingContext::_ref_type nc = name_service ();
-		CORBA::Object::_ref_type obj = nc->resolve (old_name);
-		CosNaming::NamingContext::_ref_type dir = CosNaming::NamingContext::_narrow (obj);
-		if (dir)
-			nc->rebind_context (new_name, dir);
-		else
-			nc->rebind (new_name, obj);
+		try {
+			CORBA::Object::_ref_type obj = nc->resolve (old_name);
+			CosNaming::NamingContext::_ref_type dir = CosNaming::NamingContext::_narrow (obj);
+			if (dir)
+				nc->rebind_context (new_name, dir);
+			else
+				nc->rebind (new_name, obj);
+		} catch (const CosNaming::NamingContext::NotFound& ex) {
+			throw_BAD_PARAM (make_minor_errno (ENOENT));
+		} catch (...) {
+			throw_BAD_PARAM (make_minor_errno (EINVAL));
+		}
 	}
 
 	static CS_Key CS_alloc (Deleter deleter)
