@@ -58,7 +58,7 @@ double PreparedStatement::fixed2double (const CORBA::Any& v)
 	CORBA::Fixed f;
 	CORBA::Any::to_fixed tf (f, 62, 31);
 	if (v >>= tf)
-		return (double)(long double)f;
+		return (double)f;
 	else
 		throw CORBA::BAD_PARAM ();
 }
