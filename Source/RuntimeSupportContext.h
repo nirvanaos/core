@@ -75,7 +75,9 @@ private:
 
 		RuntimeProxyImpl (const void* obj) noexcept :
 			object_ (obj)
-		{}
+		{
+//			assert (object_);
+		}
 
 		~RuntimeProxyImpl ()
 		{}
@@ -87,7 +89,7 @@ private:
 
 		void remove () noexcept
 		{
-			assert (object_);
+//			assert (object_);
 			object_ = nullptr;
 		}
 
