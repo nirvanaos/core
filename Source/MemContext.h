@@ -545,9 +545,10 @@ private:
 
 private:
 	Ref <Heap> heap_;
+	// ValueList must be destructed last
+	CORBA::Core::ValueList value_list_;
 	DataHolder data_holder_;
 	Nirvana::Locale::_ref_type locale_;
-	CORBA::Core::ValueList value_list_;
 	AtomicCounter <false> ref_cnt_;
 	bool class_library_init_;
 	bool core_context_;

@@ -92,7 +92,10 @@ MemContext::MemContext (Ref <Heap>&& heap, bool class_library_init, bool core_co
 
 inline
 MemContext::~MemContext ()
-{}
+{
+	// Set core_context_ to prohibit runtime proxy creation during the destruction.
+	core_context_ = true;
+}
 
 class MemContext::Replacer
 {

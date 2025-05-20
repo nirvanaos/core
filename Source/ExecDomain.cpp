@@ -152,13 +152,17 @@ void ExecDomain::cleanup () noexcept
 	assert (!runnable_);
 
 	leave_sync_domain ();
-	sync_context_ = nullptr;
+
+	// Just for case when SYNC_BEGIN called in the memory context destruction
+	sync_context_ = &g_core_free_sync_context;
 
 	assert (!mem_context_stack_.empty ());
 	assert (1 == dbg_mem_context_stack_size_);
 	do {
 		mem_context_pop ();
 	} while (!mem_context_stack_.empty ());
+
+	sync_context_ = nullptr;
 
 #ifndef NDEBUG
 	dbg_mem_context_stack_size_ = 0;
