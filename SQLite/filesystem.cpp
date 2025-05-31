@@ -31,7 +31,7 @@
 #include <Nirvana/POSIX.h>
 #include <Nirvana/c_heap_dbg.h>
 #include <Nirvana/posix_defs.h>
-#include <time.h>
+#include <Nirvana/RandomGen.h>
 
 extern "C" int sqlite3_os_init ()
 {
@@ -461,20 +461,16 @@ extern "C" int xCurrentTimeInt64 (sqlite3_vfs*, sqlite3_int64* time)
 
 extern "C" int xRandomness (sqlite3_vfs*, int nByte, char* zOut)
 {
-	for (; nByte >= sizeof (unsigned); zOut += sizeof (unsigned), nByte -= sizeof (unsigned)) {
-		*(unsigned*)zOut = Nirvana::the_posix->rand ();
+	Nirvana::RandomGen random ((Nirvana::RandomGen::result_type)Nirvana::the_posix->UTC ().time ());
+	for (size_t cnt = nByte; cnt > 0;) {
+		Nirvana::RandomGen::result_type rnd = random ();
+		size_t bcnt = sizeof (Nirvana::RandomGen::result_type);
+		if (bcnt > cnt)
+			bcnt = cnt;
+		const char* src = (const char*)&rnd;
+		zOut = std::copy (src, src + bcnt, zOut);
+		cnt -= bcnt;
 	}
-
-	if (sizeof (unsigned) > sizeof (uint16_t)) {
-		for (; nByte >= sizeof (uint16_t); zOut += sizeof (uint16_t), nByte -= sizeof (uint16_t)) {
-			*(uint16_t*)zOut = (uint16_t)Nirvana::the_posix->rand ();
-		}
-	}
-
-	for (; nByte > 0; ++zOut, --nByte) {
-		*zOut = (uint8_t)Nirvana::the_posix->rand ();
-	}
-
 	return nByte;
 }
 

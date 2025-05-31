@@ -83,7 +83,8 @@ MemContext::MemContext (Ref <Heap>&& heap, bool class_library_init, bool core_co
 	heap_ (std::move (heap)),
 	ref_cnt_ (1),
 	class_library_init_ (class_library_init),
-	core_context_ (core_context)
+	core_context_ (core_context),
+	error_number_ (0)
 {
 	MemContext* parent = current_ptr ();
 	if (parent)

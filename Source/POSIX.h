@@ -89,7 +89,7 @@ public:
 
 	static int* error_number ()
 	{
-		return Core::RuntimeGlobal::current ().error_number ();
+		return &Core::MemContext::current ().error_number ();
 	}
 
 	static void raise (int signal)
@@ -111,16 +111,6 @@ public:
 	static void sigaction (int signal, const struct sigaction* act, struct sigaction* oldact)
 	{
 		throw_NO_IMPLEMENT ();
-	}
-
-	static void srand (unsigned seed)
-	{
-		Core::RuntimeGlobal::current ().srand (seed);
-	}
-
-	static unsigned rand ()
-	{
-		return Core::RuntimeGlobal::current ().rand ();
 	}
 
 	static IDL::String get_current_dir ()
