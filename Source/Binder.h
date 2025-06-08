@@ -240,10 +240,7 @@ public:
 		Thread* th = Thread::current_ptr ();
 		if (th && th->executing ()) {
 			SYNC_BEGIN (sync_domain (), nullptr)
-				auto it = singleton_->binary_map_.upper_bound (signal.si_addr);
-			assert (it != singleton_->binary_map_.begin ());
-			if (it != singleton_->binary_map_.begin ())
-				binary = (--it)->second;
+			binary = singleton_->binary_map_.find (signal.si_addr);
 			SYNC_END ();
 		}
 		if (binary)
@@ -453,8 +450,18 @@ private:
 		{
 			erase (binary.base_address ());
 		}
-	};
 
+		Binary* find (const void* addr) const noexcept
+		{
+			auto it = upper_bound (addr);
+			assert (it != begin ());
+			Binary* binary = nullptr;
+			if (it != begin ())
+				binary = (--it)->second;
+			return binary;
+		}
+	};
+	
 	/// Bind module.
 	/// 
 	/// \param mod The Nirvana::Module interface.
@@ -496,7 +503,7 @@ private:
 	uint_fast16_t get_module_bindings_sync (AccessDirect::_ptr_type binary, PM::ModuleBindings& bindings);
 
 	void housekeeping_modules ();
-	static void delete_module (Module* mod) noexcept;
+	void delete_module (Module* mod) noexcept;
 	void unload_modules ();
 
 	static NIRVANA_NORETURN void throw_object_not_in_module (const ObjectKey& name, int32_t mod_id);

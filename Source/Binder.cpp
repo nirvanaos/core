@@ -356,6 +356,7 @@ void Binder::module_unbind (Nirvana::Module::_ptr_type mod, const Section& metad
 void Binder::delete_module (Module* mod) noexcept
 {
 	if (mod) {
+		binary_map_.remove (*mod);
 		try {
 			// Module deletion can be a long operation, do it in system context
 			SYNC_BEGIN (g_core_free_sync_context, &memory ());
@@ -394,6 +395,7 @@ Ref <Module> Binder::load (int32_t mod_id, AccessDirect::_ptr_type binary)
 				SYNC_END ();
 
 				assert (mod->_refcount_value () == 0);
+				binary_map_.add (*mod);
 				ModuleContext context (mod);
 				bind_and_init (*mod, context);
 				try {
