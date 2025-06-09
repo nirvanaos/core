@@ -29,13 +29,15 @@
 #pragma once
 
 #include <Port/Module.h>
+#include "TLS.h"
 
 namespace Nirvana {
 namespace Core {
 
 /// Binary: Nirvana::Module interface implementation.
 class Binary :
-	private Port::Module
+	private Port::Module,
+	public TLS
 {
 public:
 	static uint_fast16_t get_platform (AccessDirect::_ptr_type file)

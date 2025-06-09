@@ -61,6 +61,26 @@ public:
 		at_exit_table_ [at_exit_cnt_++] = f;
 	}
 
+	static unsigned CS_alloc (Deleter deleter)
+	{
+		throw_NO_IMPLEMENT ();
+	}
+
+	static void CS_free (unsigned idx)
+	{
+		throw_NO_IMPLEMENT ();
+	}
+
+	static void CS_set (unsigned idx, void* p)
+	{
+		throw_NO_IMPLEMENT ();
+	}
+
+	static void* CS_get (unsigned idx) noexcept
+	{
+		return nullptr;
+	}
+
 private:
 	static const size_t MAX_AT_EXIT_ENTRIES = 8;
 	static AtExitFunc at_exit_table_ [MAX_AT_EXIT_ENTRIES];

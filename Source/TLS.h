@@ -50,10 +50,9 @@ class TLS
 	static const unsigned USER_TLS_INDEXES_END = BITMAP_SIZE * sizeof (BitmapWord) * 8;
 
 public:
-	/// Called on system startup.
-	static void initialize () noexcept
+	TLS () noexcept :
+		free_count_ (USER_TLS_INDEXES_END)
 	{
-		free_count_ = USER_TLS_INDEXES_END;
 		std::fill_n (bitmap_, BITMAP_SIZE, ~0);
 	}
 
@@ -62,7 +61,7 @@ public:
 	/// \returns New TLS index.
 	/// \param deleter Optional deleter function.
 	/// \throws CORBA::IMP_LIMIT if the limit of the user TLS indexes is reached.
-	static unsigned allocate (Deleter deleter)
+	unsigned CS_alloc (Deleter deleter)
 	{
 		if (BitmapOps::acquire (&free_count_)) {
 			for (BitmapWord* p = bitmap_;;) {
@@ -84,7 +83,7 @@ public:
 	///
 	/// \param idx TLS index.
 	/// \throws CORBA::BAD_PARAM if \p is not allocated.
-	static void release (unsigned idx)
+	void CS_free (unsigned idx)
 	{
 		if (idx >= USER_TLS_INDEXES_END)
 			throw_BAD_PARAM ();
@@ -101,7 +100,7 @@ public:
 	/// \param idx TLS index.
 	/// \param p Value.
 	/// \throws CORBA::BAD_PARAM if \p idx is wrong.
-	static void set (unsigned idx, void* p)
+	void CS_set (unsigned idx, void* p)
 	{
 		{
 			if (idx >= USER_TLS_INDEXES_END)
@@ -119,7 +118,7 @@ public:
 	/// 
 	/// \param idx TLS index.
 	/// \returns TLS value.
-	static void* get (unsigned idx) noexcept
+	static void* CS_get (unsigned idx) noexcept
 	{
 		MemContext* mc = MemContext::current_ptr ();
 		if (mc) {
@@ -131,9 +130,9 @@ public:
 	}
 
 private:
-	static BitmapWord bitmap_ [BITMAP_SIZE];
-	static Deleter deleters_ [USER_TLS_INDEXES_END];
-	static uint16_t free_count_;
+	BitmapWord bitmap_ [BITMAP_SIZE];
+	Deleter deleters_ [USER_TLS_INDEXES_END];
+	uint16_t free_count_;
 };
 
 }

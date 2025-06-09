@@ -28,7 +28,7 @@
 #pragma once
 
 #include <Nirvana/Nirvana.h>
-#include <Nirvana/POSIX.h>
+#include <Nirvana/Module.h>
 
 namespace CORBA {
 namespace Internal {
@@ -54,13 +54,13 @@ public:
 	SFloatTLS ();
 	~SFloatTLS ();
 
-	Nirvana::POSIX::CS_Key cs_key () const noexcept
+	Nirvana::Module::CS_Key cs_key () const noexcept
 	{
 		return cs_key_;
 	}
 
 private:
-	Nirvana::POSIX::CS_Key cs_key_;
+	Nirvana::Module::CS_Key cs_key_;
 };
 
 }

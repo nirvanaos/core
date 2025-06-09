@@ -29,10 +29,6 @@
 namespace Nirvana {
 namespace Core {
 
-TLS::BitmapWord TLS::bitmap_ [BITMAP_SIZE];
-Deleter TLS::deleters_ [USER_TLS_INDEXES_END];
-uint16_t TLS::free_count_;
-
 void TLS_Context::Entry::destruct () noexcept
 {
 	if (deleter_ && ptr_) {

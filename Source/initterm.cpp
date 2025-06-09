@@ -31,7 +31,6 @@
 #include "ExecDomain.h"
 #include "ThreadBackground.h"
 #include "Timer.h"
-#include "TLS.h"
 #include "ORB/ORB_initterm.h"
 #include "ORB/Services.h"
 #include "ORB/LocalAddress.h"
@@ -47,7 +46,6 @@ namespace Core {
 void initialize0 ()
 {
 	Chrono::initialize ();
-	TLS::initialize ();
 	g_core_free_sync_context.construct ();
 	Timer::initialize ();
 	ThreadBackground::initialize ();

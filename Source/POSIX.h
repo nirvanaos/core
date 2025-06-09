@@ -297,26 +297,6 @@ public:
 		}
 	}
 
-	static CS_Key CS_alloc (Deleter deleter)
-	{
-		return (CS_Key)Core::TLS::allocate (deleter);
-	}
-
-	static void CS_free (unsigned idx)
-	{
-		Core::TLS::release (idx);
-	}
-
-	static void CS_set (unsigned idx, void* ptr)
-	{
-		Core::TLS::set (idx, ptr);
-	}
-
-	static void* CS_get (unsigned idx)
-	{
-		return Core::TLS::get (idx);
-	}
-
 	static uint32_t _s__get_hardware_concurrency (CORBA::Internal::Bridge <Nirvana::POSIX>* _b, CORBA::Internal::Interface* _env)
 	{
 		return Core::SystemInfo::hardware_concurrency ();
