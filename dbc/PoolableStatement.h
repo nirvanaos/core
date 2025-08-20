@@ -99,7 +99,7 @@ class PoolableStatementS :
 	using Base = PoolableS <typename Itf::_ref_type, Itf, S>;
 
 public:
-	using PoolType = Base::PoolType;
+	using PoolType = typename Base::PoolType;
 
 	using PoolableStatementBase::isClosed;
 
