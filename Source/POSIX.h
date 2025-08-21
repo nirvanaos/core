@@ -47,12 +47,14 @@ class Static_the_posix :
 	public IDL::traits <POSIX>::ServantStatic <Static_the_posix>
 {
 public:
-	static TimeBase::UtcT _s_system_clock (CORBA::Internal::Bridge <POSIX>* _b, CORBA::Internal::Interface* _env)
+	static TimeBase::UtcT _s_system_clock (CORBA::Internal::Bridge <POSIX>*,
+		CORBA::Internal::Interface*) noexcept
 	{
 		return Core::Chrono::system_clock ();
 	}
 
-	static TimeBase::UtcT _s_UTC (CORBA::Internal::Bridge <POSIX>* _b, CORBA::Internal::Interface* _env)
+	static TimeBase::UtcT _s_UTC (CORBA::Internal::Bridge <POSIX>*, CORBA::Internal::Interface*)
+		noexcept
 	{
 		return Core::Chrono::UTC ();
 	}
@@ -62,27 +64,32 @@ public:
 		Core::Chrono::set_UTC (t);
 	}
 
-	static IDL::Type <TimeBase::TimeT>::ConstRef _s__get_system_clock_resolution (CORBA::Internal::Bridge <POSIX>* _b, CORBA::Internal::Interface* _env)
+	static IDL::Type <TimeBase::TimeT>::ConstRef _s__get_system_clock_resolution (
+		CORBA::Internal::Bridge <POSIX>*, CORBA::Internal::Interface*) noexcept
 	{
 		return IDL::Type <TimeBase::TimeT>::VT_ret (Core::Chrono::system_clock_resolution ());
 	}
 
-	static SteadyTime _s_steady_clock (CORBA::Internal::Bridge <POSIX>* _b, CORBA::Internal::Interface* _env)
+	static SteadyTime _s_steady_clock (CORBA::Internal::Bridge <POSIX>*, CORBA::Internal::Interface*)
+		noexcept
 	{
 		return Core::Chrono::steady_clock ();
 	}
 
-	static IDL::Type <SteadyTime>::ConstRef _s__get_steady_clock_resolution (CORBA::Internal::Bridge <POSIX>* _b, CORBA::Internal::Interface* _env)
+	static IDL::Type <SteadyTime>::ConstRef _s__get_steady_clock_resolution (
+		CORBA::Internal::Bridge <POSIX>*, CORBA::Internal::Interface*) noexcept
 	{
 		return IDL::Type <SteadyTime>::VT_ret (Core::Chrono::steady_clock_resolution ());
 	}
 
-	static DeadlineTime _s_deadline_clock (CORBA::Internal::Bridge <POSIX>* _b, CORBA::Internal::Interface* _env)
+	static DeadlineTime _s_deadline_clock (CORBA::Internal::Bridge <POSIX>*,
+		CORBA::Internal::Interface*) noexcept
 	{
 		return Core::Chrono::deadline_clock ();
 	}
 
-	static IDL::Type <uint64_t>::ConstRef _s__get_deadline_clock_frequency (CORBA::Internal::Bridge <POSIX>* _b, CORBA::Internal::Interface* _env)
+	static IDL::Type <uint64_t>::ConstRef _s__get_deadline_clock_frequency (
+		CORBA::Internal::Bridge <POSIX>*, CORBA::Internal::Interface*) noexcept
 	{
 		return IDL::Type <uint64_t>::VT_ret (Core::Chrono::deadline_clock_frequency ());
 	}
@@ -297,7 +304,8 @@ public:
 		}
 	}
 
-	static uint32_t _s__get_hardware_concurrency (CORBA::Internal::Bridge <Nirvana::POSIX>* _b, CORBA::Internal::Interface* _env)
+	static uint32_t _s__get_hardware_concurrency (CORBA::Internal::Bridge <Nirvana::POSIX>*,
+		CORBA::Internal::Interface*) noexcept
 	{
 		return Core::SystemInfo::hardware_concurrency ();
 	}

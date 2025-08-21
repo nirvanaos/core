@@ -46,7 +46,7 @@ class Static_the_orb : public servant_traits <CORBA::ORB>::ServantStatic <Static
 public:
 	static const UShort IIOP_DEFAULT_PORT = 2809;
 
-	static IDL::Type <ORBid>::ABI_ret _s_id (Internal::Bridge <CORBA::ORB>*, Internal::Interface*)
+	static IDL::Type <ORBid>::ABI_ret _s_id (Internal::Bridge <CORBA::ORB>*, Internal::Interface*) noexcept
 	{
 		return IDL::Type <ORBid>::ret ();
 	}

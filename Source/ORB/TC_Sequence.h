@@ -73,12 +73,12 @@ public:
 			return Static_the_orb::create_sequence_tc (bound_, compact_content);
 	}
 
-	static size_t _s_n_size (Internal::Bridge <TypeCode>*, Internal::Interface*)
+	static size_t _s_n_size (Internal::Bridge <TypeCode>*, Internal::Interface*) noexcept
 	{
 		return sizeof (ABI);
 	}
 
-	static size_t _s_n_align (Internal::Bridge <TypeCode>*, Internal::Interface*)
+	static size_t _s_n_align (Internal::Bridge <TypeCode>*, Internal::Interface*) noexcept
 	{
 		return alignof (ABI);
 	}

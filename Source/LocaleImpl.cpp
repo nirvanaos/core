@@ -43,16 +43,16 @@
 namespace Nirvana {
 namespace Core {
 
-template <const LocaleDef* def>
+template <const LocaleDef* defs, size_t i>
 class LocaleStatic :
-	public IDL::traits <Nirvana::Locale>::ServantStatic <LocaleStatic <def> >
+	public IDL::traits <Nirvana::Locale>::ServantStatic <LocaleStatic <defs, i> >
 {
-	using Servant = LocaleStatic <def>;
+	using Servant = LocaleStatic <defs, i>;
 
 public:
 	static const char* name () noexcept
 	{
-		return def->name;
+		return defs [i].name;
 	}
 
 	static Nirvana::Facet::_ref_type get_facet (int category) noexcept
@@ -66,7 +66,7 @@ public:
 
 	static const struct lconv* localeconv () noexcept
 	{
-		return def->lc;
+		return defs [i].lc;
 	}
 };
 
@@ -116,7 +116,7 @@ int LocaleDefCompare::compare (const LocaleDef& l, const char* s) noexcept
 
 #define LOCALE_DEF_CNT 2
 
-const struct lconv lconv_posix = {
+static const struct lconv lconv_posix = {
 	LCONV_STR ("."),
 	LCONV_STR (""),
 	LCONV_STR (""),
@@ -142,12 +142,12 @@ const struct lconv lconv_posix = {
 	CHAR_MAX
 };
 
-const LocaleDef locale_defs [LOCALE_DEF_CNT] = {
+static const LocaleDef locale_defs [LOCALE_DEF_CNT] = {
 	LOCALE_DEF ("c", lconv_posix),
 	LOCALE_DEF ("posix", lconv_posix)
 };
 
-#define LOCALE_PTR(z, n, d) LocaleStatic <&locale_defs [n]>::_get_ptr (),
+#define LOCALE_PTR(z, n, d) LocaleStatic <locale_defs, n>::_get_ptr (),
 
 Nirvana::Locale* const locale_ptrs [LOCALE_DEF_CNT] = {
 	BOOST_PP_REPEAT (LOCALE_DEF_CNT, LOCALE_PTR, 0)

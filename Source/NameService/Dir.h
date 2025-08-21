@@ -48,11 +48,11 @@ public:
 
 	// NamingContext::destroy () does nothing
 	static void _s_destroy (CORBA::Internal::Bridge <CosNaming::NamingContext>*,
-		CORBA::Internal::Interface* _env)
+		CORBA::Internal::Interface* _env) noexcept
 	{}
 
 	static CORBA::Internal::Interface* _s_new_context (CORBA::Internal::Bridge <CosNaming::NamingContext>*,
-		CORBA::Internal::Interface* _env)
+		CORBA::Internal::Interface* _env) noexcept
 	{
 		CORBA::Internal::set_BAD_OPERATION (_env);
 		return nullptr;

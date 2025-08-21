@@ -40,7 +40,7 @@ namespace Core {
 
 POA_Root* POA_Base::root_;
 
-Interface* POA_Base::_s_get_servant (Bridge <POA>* _b, Interface* _env)
+Interface* POA_Base::_s_get_servant (Bridge <POA>* _b, Interface* _env) noexcept
 {
 	try {
 		return Type <Object>::ret (_implementation (_b).get_servant ());
@@ -54,7 +54,7 @@ Interface* POA_Base::_s_get_servant (Bridge <POA>* _b, Interface* _env)
 
 void POA_Base::_s_set_servant (Bridge <POA>* _b,
 	Interface* p_servant,
-	Interface* _env)
+	Interface* _env) noexcept
 {
 	try {
 		_implementation (_b).set_servant (Type <Object>::in (p_servant));
@@ -67,7 +67,7 @@ void POA_Base::_s_set_servant (Bridge <POA>* _b,
 
 Type <ObjectId>::ABI_ret POA_Base::_s_activate_object (Bridge <POA>* _b,
 	Interface* p_servant,
-	Interface* env)
+	Interface* env) noexcept
 {
 	try {
 		return Type <ObjectId>::ret (_implementation (_b).
@@ -82,7 +82,7 @@ Type <ObjectId>::ABI_ret POA_Base::_s_activate_object (Bridge <POA>* _b,
 
 void POA_Base::_s_activate_object_with_id (Bridge <POA>* _b,
 	Type <ObjectId>::ABI_in oid, Interface* p_servant,
-	Interface* env)
+	Interface* env) noexcept
 {
 	try {
 		_implementation (_b).activate_object_with_id (Type <ObjectId>::in (oid), Type <Object>::in (p_servant));
@@ -95,7 +95,7 @@ void POA_Base::_s_activate_object_with_id (Bridge <POA>* _b,
 
 Type <ObjectId>::ABI_ret POA_Base::_s_servant_to_id (Bridge <POA>* _b,
 	Interface* p_servant,
-	Interface* env)
+	Interface* env) noexcept
 {
 	try {
 		return Type <ObjectId>::ret (_implementation (_b).
@@ -110,7 +110,7 @@ Type <ObjectId>::ABI_ret POA_Base::_s_servant_to_id (Bridge <POA>* _b,
 
 Interface* POA_Base::_s_servant_to_reference (Bridge <POA>* _b,
 	Interface* p_servant,
-	Interface* env)
+	Interface* env) noexcept
 {
 	try {
 		return Type <Object>::ret (_implementation (_b).
@@ -125,7 +125,7 @@ Interface* POA_Base::_s_servant_to_reference (Bridge <POA>* _b,
 
 Interface* POA_Base::_s_reference_to_servant (Bridge <POA>* _b,
 	Interface* reference,
-	Interface* env)
+	Interface* env) noexcept
 {
 	try {
 		return Type <Object>::ret (_implementation (_b).
@@ -140,7 +140,7 @@ Interface* POA_Base::_s_reference_to_servant (Bridge <POA>* _b,
 
 Interface* POA_Base::_s_id_to_servant (Bridge <POA>* _b,
 	Type <ObjectId>::ABI_in oid,
-	Interface* env)
+	Interface* env) noexcept
 {
 	try {
 		return Type <Object>::ret (_implementation (_b).

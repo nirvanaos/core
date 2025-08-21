@@ -40,13 +40,13 @@ class LifeCycleStack
 {
 public:
 	template <class Itf>
-	static Internal::Interface* __duplicate (Internal::Interface* itf, Internal::Interface* env)
+	static Internal::Interface* __duplicate (Internal::Interface* itf, Internal::Interface* env) noexcept
 	{
 		return itf;
 	}
 
 	template <class Itf>
-	static void __release (Internal::Interface* itf)
+	static void __release (Internal::Interface* itf) noexcept
 	{}
 };
 

@@ -469,29 +469,29 @@ public:
 
 	// Entry point vector overrides
 	static CORBA::Internal::Interface* _s_get_servant (CORBA::Internal::Bridge <POA>* _b,
-		CORBA::Internal::Interface* _env);
+		CORBA::Internal::Interface* _env) noexcept;
 
 	static void _s_set_servant (CORBA::Internal::Bridge <POA>* _b,
-		CORBA::Internal::Interface* p_servant, CORBA::Internal::Interface* _env);
+		CORBA::Internal::Interface* p_servant, CORBA::Internal::Interface* _env) noexcept;
 
 	static IDL::Type <ObjectId>::ABI_ret _s_activate_object (CORBA::Internal::Bridge <POA>* _b,
-		CORBA::Internal::Interface* p_servant, CORBA::Internal::Interface* env);
+		CORBA::Internal::Interface* p_servant, CORBA::Internal::Interface* env) noexcept;
 
 	static void _s_activate_object_with_id (CORBA::Internal::Bridge <POA>* _b,
 		IDL::Type <ObjectId>::ABI_in oid, CORBA::Internal::Interface* p_servant,
-		CORBA::Internal::Interface* env);
+		CORBA::Internal::Interface* env) noexcept;
 
 	static IDL::Type <ObjectId>::ABI_ret _s_servant_to_id (CORBA::Internal::Bridge <POA>* _b,
-		CORBA::Internal::Interface* p_servant, CORBA::Internal::Interface* env);
+		CORBA::Internal::Interface* p_servant, CORBA::Internal::Interface* env) noexcept;
 
 	static CORBA::Internal::Interface* _s_servant_to_reference (	CORBA::Internal::Bridge <POA>* _b,
-		CORBA::Internal::Interface* servant, CORBA::Internal::Interface* env);
+		CORBA::Internal::Interface* servant, CORBA::Internal::Interface* env) noexcept;
 
 	static CORBA::Internal::Interface* _s_reference_to_servant (CORBA::Internal::Bridge <POA>* _b,
-		CORBA::Internal::Interface* reference, CORBA::Internal::Interface* env);
+		CORBA::Internal::Interface* reference, CORBA::Internal::Interface* env) noexcept;
 
 	static CORBA::Internal::Interface* _s_id_to_servant (CORBA::Internal::Bridge <POA>* _b,
-		IDL::Type <ObjectId>::ABI_in oid, CORBA::Internal::Interface* env);
+		IDL::Type <ObjectId>::ABI_in oid, CORBA::Internal::Interface* env) noexcept;
 
 	virtual ~POA_Base ();
 

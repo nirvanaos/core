@@ -78,7 +78,7 @@ public:
 		return size ();
 	}
 
-	static size_t _s_n_align (Internal::Bridge <TypeCode>*, Internal::Interface*)
+	static size_t _s_n_align (Internal::Bridge <TypeCode>*, Internal::Interface*) noexcept
 	{
 		return 1;
 	}
@@ -89,7 +89,7 @@ public:
 		Nirvana::DecimalBase::BCD_zero ((Octet*)p, size ());
 	}
 
-	static void _s_n_destruct (Internal::Bridge <TypeCode>*, void* p, Internal::Interface*)
+	static void _s_n_destruct (Internal::Bridge <TypeCode>*, void* p, Internal::Interface*) noexcept
 	{}
 
 	void n_copy (void* dst, const void* src) const;

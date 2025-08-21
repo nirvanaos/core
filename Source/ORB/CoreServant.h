@@ -52,7 +52,7 @@ public:
 	// Or by the Binder for static objects.
 	// On release reference we delete the proxy.
 	template <class Itf>
-	static void __release (Internal::Interface* itf)
+	static void __release (Internal::Interface* itf) noexcept
 	{
 		S& srv = S::_implementation (static_cast <Internal::Bridge <Itf>*> (itf));
 

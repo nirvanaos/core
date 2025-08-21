@@ -75,7 +75,7 @@ public:
 		StatementT () noexcept
 		{}
 
-		StatementT (Itf::_ref_type&& ref) noexcept :
+		StatementT (typename Itf::_ref_type&& ref) noexcept :
 			ref_ (std::move (ref))
 		{}
 
@@ -91,7 +91,7 @@ public:
 				ref_->close ();
 		}
 
-		Itf::_ptr_type operator -> () const noexcept
+		typename Itf::_ptr_type operator -> () const noexcept
 		{
 			return ref_;
 		}
@@ -107,7 +107,7 @@ public:
 		StatementT& operator = (const StatementT& src) = delete;
 
 	private:
-		Itf::_ref_type ref_;
+		typename Itf::_ref_type ref_;
 	};
 
 	using PreparedStatement = StatementT <NDBC::PreparedStatement>;

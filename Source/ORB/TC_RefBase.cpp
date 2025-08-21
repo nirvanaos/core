@@ -29,12 +29,12 @@
 namespace CORBA {
 namespace Core {
 
-size_t TC_RefBase::_s_n_size (Internal::Bridge <TypeCode>*, Internal::Interface*)
+size_t TC_RefBase::_s_n_size (Internal::Bridge <TypeCode>*, Internal::Interface*) noexcept
 {
 	return sizeof (Internal::Interface*);
 }
 
-size_t TC_RefBase::_s_n_align (Internal::Bridge <TypeCode>*, Internal::Interface*)
+size_t TC_RefBase::_s_n_align (Internal::Bridge <TypeCode>*, Internal::Interface*) noexcept
 {
 	return alignof (Internal::Interface*);
 }

@@ -41,8 +41,8 @@ public:
 		TC_IdName (kind, std::move (id), std::move (name))
 	{}
 
-	static size_t _s_n_size (Internal::Bridge <TypeCode>*, Internal::Interface*);
-	static size_t _s_n_align (Internal::Bridge <TypeCode>*, Internal::Interface*);
+	static size_t _s_n_size (Internal::Bridge <TypeCode>*, Internal::Interface*) noexcept;
+	static size_t _s_n_align (Internal::Bridge <TypeCode>*, Internal::Interface*) noexcept;
 
 	static void n_construct (void* p)
 	{

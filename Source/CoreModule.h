@@ -46,13 +46,13 @@ public:
 	}
 
 	template <class Itf>
-	static CORBA::Internal::Interface* __duplicate (CORBA::Internal::Interface* itf, CORBA::Internal::Interface*)
+	static CORBA::Internal::Interface* __duplicate (CORBA::Internal::Interface* itf, CORBA::Internal::Interface*) noexcept
 	{
 		return itf;
 	}
 
 	template <class Itf>
-	static void __release (CORBA::Internal::Interface*)
+	static void __release (CORBA::Internal::Interface*) noexcept
 	{}
 
 	void atexit (AtExitFunc f)

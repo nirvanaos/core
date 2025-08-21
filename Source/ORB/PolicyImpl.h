@@ -50,7 +50,7 @@ public:
 	// Disable implicit activation
 	using PortableServer::NoDefaultPOA::__default_POA;
 
-	static PolicyType _s__get_policy_type (Internal::Bridge <CORBA::Policy>*, Internal::Interface*)
+	static PolicyType _s__get_policy_type (Internal::Bridge <CORBA::Policy>*, Internal::Interface*) noexcept
 	{
 		return id;
 	}
@@ -60,7 +60,7 @@ public:
 		return this->_this ();
 	}
 
-	static void _s_destroy (Internal::Bridge <Policy>* _b, Internal::Interface* _env)
+	static void _s_destroy (Internal::Bridge <Policy>* _b, Internal::Interface* _env) noexcept
 	{}
 
 	static typename PolicyItf::_ref_type create (const ValueType& val);
