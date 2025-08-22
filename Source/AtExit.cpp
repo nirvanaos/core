@@ -30,21 +30,6 @@
 namespace Nirvana {
 namespace Core {
 
-void AtExitSync::atexit (AtExitFunc f)
-{
-	entries_.push_back (f);
-}
-
-void AtExitSync::execute ()
-{
-	for (auto it = entries_.rbegin (); it != entries_.rend (); ++it) {
-		try {
-			(*it) ();
-		} catch (...) {
-		}
-	}
-}
-
 void AtExitAsync::atexit (Heap& heap, AtExitFunc f)
 {
 	size_t size = sizeof (Entry);
@@ -58,7 +43,7 @@ void AtExitAsync::atexit (Heap& heap, AtExitFunc f)
 	}
 }
 
-void AtExitAsync::execute ()
+void AtExitAsync::execute () noexcept
 {
 	Entry* entry = last_.load ();
 	if (entry) {

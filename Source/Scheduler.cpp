@@ -53,15 +53,14 @@ void Scheduler::Terminator2::run ()
 void Scheduler::Terminator1::run ()
 {
 	// Terminate
-#ifdef DEBUG_SHUTDOWN
-	the_debugger->debug_event (Debugger::DebugEvent::DEBUG_INFO, "Core::terminate1 ()", __FILE__, __LINE__);
-#endif
-
 	// Ensure that all asynchronous GC is completed.
 	const auto& activity_cnt = global_->activity_cnt;
 	for (BackOff bo; activity_cnt.load () > 1;) {
 		bo ();
 	}
+#ifdef DEBUG_SHUTDOWN
+	the_debugger->debug_event (Debugger::DebugEvent::DEBUG_INFO, "Core::terminate1 ()", __FILE__, __LINE__);
+#endif
 	Core::terminate1 ();
 }
 

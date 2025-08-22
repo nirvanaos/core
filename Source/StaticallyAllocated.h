@@ -87,6 +87,11 @@ public:
 		return (T&)storage_;
 	}
 
+	constexpr T& reference () noexcept
+	{
+		return (T&)storage_;
+	}
+
 private:
 	typename std::aligned_storage <sizeof (T), alignof (T)>::type storage_;
 #ifndef NDEBUG

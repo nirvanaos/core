@@ -5,7 +5,7 @@
 *
 * Author: Igor Popov
 *
-* Copyright (c) 2021 Igor Popov.
+* Copyright (c) 2025 Igor Popov.
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU Lesser General Public License as published by
@@ -26,15 +26,26 @@
 #include "pch.h"
 #include <CORBA/Server.h>
 #include <Nirvana/Module_s.h>
+#include "TLS.h"
+#include "AtExit.h"
+#include "StaticallyAllocated.h"
+#include "SharedAllocator.h"
 
 namespace Nirvana {
 namespace Core {
 
 /// Module interface implementation for core static objects.
 class CoreModule :
-	public CORBA::servant_traits <Nirvana::Module>::ServantStatic <CoreModule>
+	public CORBA::servant_traits <Nirvana::Module>::Servant <CoreModule>
 {
 public:
+	CoreModule () = default;
+	
+	~CoreModule ()
+	{
+		at_exit_.execute ();
+	}
+
 	static const void* base_address () noexcept
 	{
 		return nullptr;
@@ -57,38 +68,35 @@ public:
 
 	void atexit (AtExitFunc f)
 	{
-		assert (at_exit_cnt_ < MAX_AT_EXIT_ENTRIES);
-		at_exit_table_ [at_exit_cnt_++] = f;
+		at_exit_.atexit (f);
 	}
 
-	static unsigned CS_alloc (Deleter deleter)
+	unsigned CS_alloc (Deleter deleter)
 	{
-		throw_NO_IMPLEMENT ();
+		return tls_.CS_alloc (deleter);
 	}
 
-	static void CS_free (unsigned idx)
+	void CS_free (unsigned idx)
 	{
-		throw_NO_IMPLEMENT ();
+		tls_.CS_free (idx);
 	}
 
-	static void CS_set (unsigned idx, void* p)
+	void CS_set (unsigned idx, void* p)
 	{
-		throw_NO_IMPLEMENT ();
+		tls_.CS_set (idx, p);
 	}
 
-	static void* CS_get (unsigned idx) noexcept
+	void* CS_get (unsigned idx) noexcept
 	{
-		return nullptr;
+		return tls_.CS_get (idx);
 	}
 
 private:
-	static const size_t MAX_AT_EXIT_ENTRIES = 8;
-	static AtExitFunc at_exit_table_ [MAX_AT_EXIT_ENTRIES];
-	static size_t at_exit_cnt_;
+	TLS tls_;
+	AtExitSync <SharedAllocator> at_exit_;
 };
 
-AtExitFunc CoreModule::at_exit_table_ [MAX_AT_EXIT_ENTRIES];
-size_t CoreModule::at_exit_cnt_;
+extern StaticallyAllocated <CoreModule> g_core_module;
 
 }
 }

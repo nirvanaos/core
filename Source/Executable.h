@@ -75,7 +75,7 @@ public:
 
 private:
 	Main::_ptr_type entry_point_;
-	AtExitSync at_exit_;
+	AtExitSync <UserAllocator> at_exit_;
 };
 
 }

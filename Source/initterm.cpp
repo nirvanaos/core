@@ -39,6 +39,7 @@
 #include <Port/PostOffice.h>
 #include "ProtDomain.h"
 #include "NameService/NameService.h"
+#include "CoreModule.h"
 
 namespace Nirvana {
 namespace Core {
@@ -47,6 +48,7 @@ void initialize0 ()
 {
 	Chrono::initialize ();
 	g_core_free_sync_context.construct ();
+	g_core_module.construct ();
 	Timer::initialize ();
 	ThreadBackground::initialize ();
 	ExecDomain::initialize ();
@@ -117,6 +119,7 @@ void terminate0 () noexcept
 	Scheduler::terminate ();
 	ExecDomain::terminate ();
 	ThreadBackground::terminate ();
+	g_core_module.destruct ();
 #ifndef NDEBUG
 	g_core_free_sync_context.destruct ();
 #endif

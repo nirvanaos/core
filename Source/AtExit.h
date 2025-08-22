@@ -31,34 +31,22 @@
 #include <Nirvana/Nirvana.h>
 #include "Heap.h"
 #include <atomic>
+#include <stack>
 
 namespace Nirvana {
 namespace Core {
-
-class AtExitSync
-{
-public:
-	AtExitSync ()
-	{}
-
-	void atexit (AtExitFunc f);
-	void execute ();
-
-private:
-	std::vector <AtExitFunc> entries_;
-};
 
 class MemContext;
 
 class AtExitAsync
 {
 public:
-	AtExitAsync () :
+	AtExitAsync () noexcept :
 		last_ (nullptr)
 	{}
 
 	void atexit (Heap& heap, AtExitFunc f);
-	void execute ();
+	void execute () noexcept;
 
 private:
 	struct Entry
@@ -70,6 +58,30 @@ private:
 
 private:
 	std::atomic <Entry*> last_;
+};
+
+template <template <class> class Allocator>
+class AtExitSync
+{
+public:
+	void atexit (AtExitFunc f)
+	{
+		entries_.push (f);
+	}
+
+	void execute () noexcept
+	{
+		while (!entries_.empty ()) {
+			try {
+				(*entries_.top ()) ();
+			} catch (...) {
+			}
+			entries_.pop ();
+		}
+	}
+
+private:
+	std::stack <AtExitFunc, std::deque <AtExitFunc, Allocator <AtExitFunc> > > entries_;
 };
 
 }

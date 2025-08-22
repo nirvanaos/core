@@ -39,7 +39,7 @@ class SystemInfo : private Port::SystemInfo
 	using Base = Port::SystemInfo;
 
 public:
-	static void initialize ()
+	static void initialize () noexcept
 	{
 		Base::initialize ();
 	}

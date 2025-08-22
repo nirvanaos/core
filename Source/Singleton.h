@@ -70,7 +70,7 @@ public:
 	virtual Module* module () noexcept override;
 
 private:
-	AtExitSync at_exit_;
+	AtExitSync <UserAllocator> at_exit_;
 
 	SyncContext::Type sync_context_type_;
 };
