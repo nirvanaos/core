@@ -37,9 +37,9 @@
 #include "../Source/POSIX.h"
 #include "../Source/CoreModule.h"
 
-NIRVANA_EXPORT (_exp_Nirvana_the_memory, "Nirvana/the_memory", Nirvana::Memory, Nirvana::Core::Memory)
-NIRVANA_EXPORT (_exp_Nirvana_the_debugger, "Nirvana/the_debugger", Nirvana::Debugger, Nirvana::Core::Debugger)
-NIRVANA_EXPORT (_exp_Nirvana_the_posix, "Nirvana/the_posix", Nirvana::POSIX, Nirvana::Static_the_posix)
+NIRVANA_EXPORT_STATIC (_exp_Nirvana_the_memory, "Nirvana/the_memory", Nirvana::Core::Memory)
+NIRVANA_EXPORT_STATIC (_exp_Nirvana_the_debugger, "Nirvana/the_debugger", Nirvana::Core::Debugger)
+NIRVANA_EXPORT_STATIC (_exp_Nirvana_the_posix, "Nirvana/the_posix", Nirvana::Static_the_posix)
 
 namespace Nirvana {
 
