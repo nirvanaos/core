@@ -29,12 +29,12 @@
 
 #include <Nirvana/OLF.h>
 
-#define TC_IMPEX_EX(t, id, ...) NIRVANA_STATIC_IMPORT Nirvana::ImportInterfaceT <CORBA::TypeCode> NIRVANA_SELECTANY CORBA::_tc_##t\
-{ Nirvana::OLF_IMPORT_INTERFACE, nullptr, nullptr, NIRVANA_STATIC_BRIDGE (CORBA::TypeCode, __VA_ARGS__) };\
-NIRVANA_EXPORT (_exp_CORBA_##t, id, CORBA::TypeCode, __VA_ARGS__);
+#define TC_IMPEX_EX(t, id, Impl) NIRVANA_STATIC_IMPORT Nirvana::ImportInterfaceT <CORBA::TypeCode> NIRVANA_SELECTANY CORBA::_tc_##t\
+{ Nirvana::OLF_IMPORT_INTERFACE, nullptr, nullptr, Impl::_bridge () };\
+NIRVANA_EXPORT (_exp_CORBA_##t, id, CORBA::TypeCode, Impl);
 
 // Import and export for type code
-#define TC_IMPEX(t, ...) TC_IMPEX_EX (t, "CORBA/_tc_" #t, __VA_ARGS__)
+//#define TC_IMPEX(t, ...) TC_IMPEX_EX (t, "CORBA/_tc_" #t, __VA_ARGS__)
 #define TC_IMPEX_BY_ID(t) TC_IMPEX_EX (t, CORBA::Internal::TC_##t::RepositoryType::id, CORBA::Internal::TC_##t)
 
 #endif
