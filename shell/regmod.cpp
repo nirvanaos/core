@@ -203,4 +203,4 @@ void Static_regmod::print (const CORBA::SystemException& se)
 
 }
 
-NIRVANA_EXPORT (_exp_regmod, "Nirvana/regmod", Nirvana::Cmdlet, Nirvana::Static_regmod)
+NIRVANA_EXPORT_STATIC (_exp_regmod, "Nirvana/regmod", Nirvana::Static_regmod)
