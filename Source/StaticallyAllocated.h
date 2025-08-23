@@ -87,6 +87,8 @@ public:
 		return (T&)storage_;
 	}
 
+	/// Reference to potentially uninitialized object.
+	/// Used for export
 	constexpr T& reference () noexcept
 	{
 		return (T&)storage_;
