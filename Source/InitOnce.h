@@ -41,6 +41,7 @@ class InitOnce :
 	private Event
 {
 public:
+	// control must be placed in a separate read-write section
 	static void once (Pointer& control, InitFunc init_func)
 	{
 		typedef LockablePtrT <InitOnce, 1> Ptr;
@@ -71,8 +72,8 @@ public:
 				if (static_cast <InitOnce*> (p)) {
 					ev = p;
 					ev->_add_ref ();
-					lockable.unlock ();
 				}
+				lockable.unlock ();
 			}
 		}
 
