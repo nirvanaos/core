@@ -474,7 +474,7 @@ extern "C" int xRandomness (sqlite3_vfs*, int nByte, char* zOut)
 	return nByte;
 }
 
-const size_t HEAP_BLOCK_OVERHEAD = sizeof (Nirvana::HeapBlockHdrType) - Nirvana::HeapBlockHdrType::TRAILER_SIZE;
+const size_t HEAP_BLOCK_OVERHEAD = sizeof (Nirvana::HeapBlockHdrType) + Nirvana::HeapBlockHdrType::TRAILER_SIZE;
 
 struct sqlite3_vfs vfs = {
 	3,                   /* Structure version number (currently 3) */
