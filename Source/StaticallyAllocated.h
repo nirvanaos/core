@@ -28,7 +28,7 @@
 #define NIRVANA_CORE_STATICALLYALLOCATED_H_
 #pragma once
 
-#include <Nirvana/Nirvana.h>
+#include <assert.h>
 
 namespace Nirvana {
 namespace Core {
