@@ -336,6 +336,16 @@ public:
 		Core::InitOnce::once (control, init_func);
 	}
 
+	static IDL::String getenv (const IDL::String& name)
+	{
+		return IDL::String ();
+	}
+
+	static void exit (int retcode)
+	{
+		throw_NO_IMPLEMENT ();
+	}
+
 private:
 	static CosNaming::NamingContext::_ref_type name_service ()
 	{
