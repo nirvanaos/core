@@ -336,9 +336,9 @@ public:
 		Core::InitOnce::once (control, init_func);
 	}
 
-	static IDL::String getenv (const IDL::String& name)
+	static bool getenv (const IDL::String& name, IDL::String& value)
 	{
-		return IDL::String ();
+		return false;
 	}
 
 	static void exit (int retcode)
