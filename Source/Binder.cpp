@@ -718,6 +718,13 @@ uint_fast16_t Binder::get_module_bindings_sync (Nirvana::AccessDirect::_ptr_type
 	mod = Module::create (-1, binary);
 	SYNC_END ();
 
+	try {
+		binary_map_.add (*mod);
+	} catch (...) {
+		delete mod;
+		throw;
+	}
+
 	ModuleContext context (mod, true);
 	try {
 		bind_and_init (*mod, context);
