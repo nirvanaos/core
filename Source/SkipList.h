@@ -393,7 +393,7 @@ public:
 	{}
 
 	/// Inserts new node.
-	/// \param val Node value.
+	/// \param args Value constructor parameters.
 	/// \returns std::pair <NodeVal*, bool>.
 	///          first must be released by `release_node`.
 	///          second is `true` if new node was inserted, false if node already exists.
@@ -420,7 +420,7 @@ public:
 	/// Gets minimal value.
 	/// \param [out] val Node value.
 	/// \returns `true` if node found, `false` if queue is empty.
-	bool get_min_value (Val& val) noexcept
+	bool get_min_value (Value& val) noexcept
 	{
 		NodeVal* node = get_min_node ();
 		if (node) {
@@ -434,7 +434,7 @@ public:
 	/// Deletes node with minimal value.
 	/// \param [out] val Node value.
 	/// \returns `true` if node deleted, `false` if queue is empty.
-	bool delete_min (Val& val) noexcept
+	bool delete_min (Value& val) noexcept
 	{
 		NodeVal* node = delete_min ();
 		if (node) {
@@ -448,7 +448,7 @@ public:
 	/// Deletes node with specified value.
 	/// \param val Node value to delete.
 	/// \returns `true` if node deleted, `false` if value not found.
-	bool erase (const Val& val) noexcept
+	bool erase (const Value& val) noexcept
 	{
 		NodeVal keynode (1, std::ref (val));
 		return Base::erase (&keynode);
@@ -457,6 +457,16 @@ public:
 	bool erase (const NodeVal* keynode) noexcept
 	{
 		return Base::erase (keynode);
+	}
+
+	/// Deletes node with specified value.
+	/// \param args Value constructor parameters.
+	/// \returns `true` if node deleted, `false` if value not found.
+	template <class ... Args>
+	bool erase (Args&& ... args) noexcept
+	{
+		NodeVal keynode (1, std::forward <Args> (args)...);
+		return Base::erase (&keynode);
 	}
 
 	/// Gets node with minimal value.
@@ -492,7 +502,7 @@ public:
 	/// \returns The Node pointer or `nullptr` if value not found.
 	///          Returned pointer must be released by `release_node`.
 	template <class ... Args>
-	NodeVal* find (Args&& ... args)
+	NodeVal* find (Args&& ... args) noexcept
 	{
 		NodeVal keynode (1, std::forward <Args> (args)...);
 		return static_cast <NodeVal*> (Base::find (&keynode));
@@ -510,6 +520,7 @@ public:
 	}
 
 	/// Finds first node equal or greater than value.
+	/// \param val A value.
 	/// \returns Node pointer or `nullptr` if node not found.
 	///          Returned pointer must be released by `release_node`.
 	NodeVal* lower_bound (const Val& val) noexcept
@@ -518,12 +529,35 @@ public:
 		return static_cast <NodeVal*> (Base::lower_bound (&keynode));
 	}
 
+	/// Finds first node equal or greater than value.
+	/// \param args Value constructor parameters.
+	/// \returns Node pointer or `nullptr` if node not found.
+	///          Returned pointer must be released by `release_node`.
+	template <class ... Args>
+	NodeVal* lower_bound (Args&& ... args) noexcept
+	{
+		NodeVal keynode (1, std::forward <Args> (args)...);
+		return static_cast <NodeVal*> (Base::lower_bound (&keynode));
+	}
+
 	/// Finds first node greater than value.
+	/// \param val A value.
 	/// \returns Node pointer or `nullptr` if node not found.
 	///          Returned pointer must be released by `release_node`.
 	NodeVal* upper_bound (const Val& val) noexcept
 	{
 		NodeVal keynode (1, std::ref (val));
+		return static_cast <NodeVal*> (Base::upper_bound (&keynode));
+	}
+
+	/// Finds first node greater than value.
+	/// \param args Value constructor parameters.
+	/// \returns Node pointer or `nullptr` if node not found.
+	///          Returned pointer must be released by `release_node`.
+	template <class ... Args>
+	NodeVal* upper_bound (Args&& ... args) noexcept
+	{
+		NodeVal keynode (1, std::forward <Args> (args)...);
 		return static_cast <NodeVal*> (Base::upper_bound (&keynode));
 	}
 

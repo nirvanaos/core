@@ -34,24 +34,38 @@
 namespace Nirvana {
 namespace Core {
 
-/// Binary: Nirvana::Module interface implementation.
+/// Binary: Nirvana loadable module implementation.
 class Binary :
 	private Port::Module,
 	public TLS
 {
 public:
+	/// \brief Obtain platform id from the file.
+	/// \param file File access object.
+	/// \returns Platform id or zero.
 	static uint_fast16_t get_platform (AccessDirect::_ptr_type file)
 	{
 		return Port::Module::get_platform (file);
 	}
 
+	/// \brief Check that a specified platform supported by the current system domain.
+	/// \param platform Platform id.
+	/// \returns `true` if platform is supported.
 	static bool is_supported_platform (uint_fast16_t platform) noexcept;
 
+	/// \returns Base address of binary loaded in memory.
 	const void* base_address () const noexcept
 	{
 		return Port::Module::address ();
 	}
 
+	/// \returns Size of the loaded image started from the base_address ().
+	size_t size () const noexcept
+	{
+		return Port::Module::size ();
+	}
+
+	/// \returns Module metadata section.
 	const Section& metadata () const noexcept
 	{
 		return Port::Module::metadata ();

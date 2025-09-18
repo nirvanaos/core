@@ -39,12 +39,12 @@
 #include "Nirvana/CoreDomains.h"
 #include "WaitableRef.h"
 #include "Chrono.h"
-#include "MapOrderedUnstable.h"
 #include "MapUnorderedStable.h"
 #include "MapUnorderedUnstable.h"
 #include "ORB/RemoteReferences.h"
 #include "TimerAsyncCall.h"
 #include "SystemInfo.h"
+#include "BinaryMap.h"
 
 namespace Nirvana {
 namespace Core {
@@ -238,11 +238,8 @@ public:
 	{
 		Binary* binary = nullptr;
 		Thread* th = Thread::current_ptr ();
-		if (th && th->executing ()) {
-			SYNC_BEGIN (sync_domain (), nullptr)
+		if (th && th->executing ())
 			binary = singleton_->binary_map_.find (signal.si_addr);
-			SYNC_END ();
-		}
 		if (binary)
 			binary->raise_exception ((CORBA::SystemException::Code)signal.si_excode, signal.si_code);
 		else
@@ -430,38 +427,6 @@ private:
 		{}
 	};
 
-	// Map of the binaries.
-	// Used for the signals to exception.
-	class BinaryMap :
-		public MapOrderedUnstable <const void*, Binary*, std::less <const void*>, Allocator>
-	{
-	public:
-		BinaryMap ()
-		{
-			emplace (SystemInfo::base_address (), nullptr);
-		}
-
-		void add (Binary& binary)
-		{
-			emplace (binary.base_address (), &binary);
-		}
-
-		void remove (Binary& binary)
-		{
-			erase (binary.base_address ());
-		}
-
-		Binary* find (const void* addr) const noexcept
-		{
-			auto it = upper_bound (addr);
-			assert (it != begin ());
-			Binary* binary = nullptr;
-			if (it != begin ())
-				binary = (--it)->second;
-			return binary;
-		}
-	};
-	
 	/// Bind module.
 	/// 
 	/// \param mod The Nirvana::Module interface.
