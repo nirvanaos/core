@@ -94,7 +94,7 @@ public:
 
 	void remove (Binary& binary) noexcept
 	{
-		NIRVANA_VERIFY (Base::erase (binary.base_address ()));
+		Base::erase (binary.base_address ());
 	}
 
 	Binary* find (const void* addr) noexcept

@@ -395,7 +395,6 @@ Ref <Module> Binder::load (int32_t mod_id, AccessDirect::_ptr_type binary)
 				SYNC_END ();
 
 				assert (mod->_refcount_value () == 0);
-				binary_map_.add (*mod);
 				ModuleContext context (mod);
 				bind_and_init (*mod, context);
 				try {
@@ -434,6 +433,8 @@ Ref <Module> Binder::load (int32_t mod_id, AccessDirect::_ptr_type binary)
 void Binder::bind_and_init (Module& mod, ModuleContext& context)
 {
 	const ModuleStartup* startup = module_bind (mod._get_ptr (), mod.metadata (), &context);
+
+	binary_map_.add (mod);
 
 	BindResult ret;
 	Ref <Request> rq = Request::create ();
@@ -717,13 +718,6 @@ uint_fast16_t Binder::get_module_bindings_sync (Nirvana::AccessDirect::_ptr_type
 	SYNC_BEGIN (g_core_free_sync_context, &memory ());
 	mod = Module::create (-1, binary);
 	SYNC_END ();
-
-	try {
-		binary_map_.add (*mod);
-	} catch (...) {
-		delete mod;
-		throw;
-	}
 
 	ModuleContext context (mod, true);
 	try {
