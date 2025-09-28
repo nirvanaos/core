@@ -39,7 +39,6 @@
 #include "unrecoverable_error.h"
 #include "Chrono.h"
 #include "SystemInfo.h"
-#include "InitOnce.h"
 
 namespace Nirvana {
 
@@ -329,11 +328,6 @@ public:
 	static Nirvana::Locale::_ref_type create_locale (int mask, const IDL::String& name, Nirvana::Locale::_ptr_type base)
 	{
 		return Core::locale_create (mask, name, base);
-	}
-
-	static void once (Pointer& control, InitFunc init_func)
-	{
-		Core::InitOnce::once (control, init_func);
 	}
 
 	static bool getenv (const IDL::String& name, IDL::String& value)
