@@ -27,6 +27,10 @@
 #include <Nirvana/DecCalc_s.h>
 #include <Nirvana/signal_defs.h>
 
+#ifdef _MSC_VER
+#define _INC_SIGNAL // Prevent inclusion of MSVC UCRT signal.h
+#endif
+
 // All calculations are performed with double precision 62 digits
 #define DECNUMDIGITS 62
 extern "C" {
