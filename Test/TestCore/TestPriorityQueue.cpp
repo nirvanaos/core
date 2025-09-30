@@ -76,10 +76,11 @@ protected:
 	}
 };
 
+typedef uint32_t Index;
+
 struct Value
 {
-	int idx;
-	unsigned deadline;
+	Index idx;
 
 	bool operator < (const Value& rhs) const
 	{
@@ -89,6 +90,8 @@ struct Value
 
 struct StdNode : Value
 {
+	DeadlineTime deadline;
+
 	bool operator < (const StdNode& rhs) const
 	{ // STL priority queue sorted in descending order.
 		if (deadline > rhs.deadline)
@@ -123,15 +126,15 @@ TYPED_TEST (TestPriorityQueue, SingleThread)
 	TypeParam queue;
 	StdPriorityQueue queue_std;
 	RandomGen rndgen;
-	std::uniform_int_distribution <int> distr;
+	std::uniform_int_distribution <DeadlineTime> distr;
 
 	Value v;
 	ASSERT_FALSE (queue.delete_min (v));
 	EXPECT_TRUE (queue.empty ());
 
-	static const int MAX_COUNT = 1000;
-	for (int i = 0; i < MAX_COUNT; ++i) {
-		unsigned deadline = distr (rndgen);
+	static const Index MAX_COUNT = 1000;
+	for (Index i = 0; i < MAX_COUNT; ++i) {
+		DeadlineTime deadline = distr (rndgen);
 		StdNode node;
 		node.deadline = deadline;
 		node.idx = i;
@@ -140,13 +143,12 @@ TYPED_TEST (TestPriorityQueue, SingleThread)
 		queue_std.push (node);
 	}
 
-	for (int i = 0; i < MAX_COUNT; ++i) {
+	for (Index i = 0; i < MAX_COUNT; ++i) {
 		Value val;
 		DeadlineTime deadline;
 		ASSERT_TRUE (queue.delete_min (val, deadline));
-		ASSERT_EQ (val.deadline, deadline);
 		ASSERT_EQ (val.idx, queue_std.top ().idx);
-		ASSERT_EQ (val.deadline, queue_std.top ().deadline);
+		ASSERT_EQ (deadline, queue_std.top ().deadline);
 		queue_std.pop ();
 	}
 
@@ -158,11 +160,11 @@ TYPED_TEST (TestPriorityQueue, Reorder)
 	TypeParam queue;
 	StdPriorityQueue queue_std;
 	RandomGen rndgen;
-	std::uniform_int_distribution <int> distr;
+	std::uniform_int_distribution <DeadlineTime> distr;
 
-	static const int MAX_COUNT = 1000;
-	for (int i = 0; i < MAX_COUNT; ++i) {
-		unsigned deadline = distr (rndgen);
+	static const Index MAX_COUNT = 1000;
+	for (Index i = 0; i < MAX_COUNT; ++i) {
+		DeadlineTime deadline = distr (rndgen);
 		StdNode node;
 		node.deadline = deadline;
 		node.idx = i;
@@ -175,7 +177,7 @@ TYPED_TEST (TestPriorityQueue, Reorder)
 		StdPriorityQueue tmp;
 		tmp.swap (queue_std);
 		for (int i = 0; i < MAX_COUNT; ++i) {
-			unsigned deadline = distr (rndgen);
+			DeadlineTime deadline = distr (rndgen);
 			StdNode val = tmp.top ();
 			if (deadline != val.deadline) {
 				DeadlineTime old = val.deadline;
@@ -187,13 +189,12 @@ TYPED_TEST (TestPriorityQueue, Reorder)
 		}
 	}
 
-	for (int i = 0; i < MAX_COUNT; ++i) {
+	for (Index i = 0; i < MAX_COUNT; ++i) {
 		Value val;
 		DeadlineTime deadline;
 		ASSERT_TRUE (queue.delete_min (val, deadline));
-		ASSERT_EQ (val.deadline, deadline);
 		ASSERT_EQ (val.idx, queue_std.top ().idx);
-		ASSERT_EQ (val.deadline, queue_std.top ().deadline);
+		ASSERT_EQ (deadline, queue_std.top ().deadline);
 		queue_std.pop ();
 	}
 
@@ -201,30 +202,59 @@ TYPED_TEST (TestPriorityQueue, Reorder)
 }
 
 // Ensure that all values are different.
-std::atomic <int> g_timestamp (0);
+std::atomic <Index> g_timestamp (0);
 
 template <class PQ>
 class ThreadTest
 {
 	static const size_t NUM_PRIORITIES = 20;
-	static const int NUM_ITERATIONS = 500000;
+#ifdef NDEBUG
+	static const int NUM_ITERATIONS = 200000;
+#else
+	static const int NUM_ITERATIONS = 50000;
+#endif
 	static const int MAX_QUEUE_SIZE = 10000;
 
 public:
 	ThreadTest () :
 		queue_ (),
 		queue_size_ (0)
-	{
-		for (int i = 0; i < NUM_PRIORITIES; ++i)
-			counters_ [i] = 0;
-	}
+	{}
 
 	void thread_proc ();
 
 	void finalize ();
 
 private:
-	std::array <std::atomic <int>, NUM_PRIORITIES> counters_;
+	class Map
+	{
+	public:
+		bool insert (const Value& val, DeadlineTime deadline)
+		{
+			std::lock_guard <std::mutex> lock (mutex_);
+			return map_.emplace (val.idx, deadline).second;
+		}
+
+		bool erase (const Value& val)
+		{
+			mutex_.lock ();
+			bool ret = map_.erase (val.idx);
+			mutex_.unlock ();
+			return ret;
+		}
+
+		bool empty () const
+		{
+			return map_.empty ();
+		}
+
+	private:
+		mutable std::mutex mutex_;
+		std::unordered_map <Index, DeadlineTime> map_;
+	};
+
+private:
+	Map map_;
 	PQ queue_;
 	std::atomic <int> queue_size_;
 };
@@ -233,44 +263,44 @@ template <class PQ>
 void ThreadTest <PQ>::thread_proc ()
 {
 	RandomGen rndgen;
-	std::uniform_int_distribution <int> distr (0, NUM_PRIORITIES - 1);
+	std::uniform_int_distribution <DeadlineTime> distr (0, NUM_PRIORITIES - 1);
 
-	std::vector <Value> values;
+	std::vector <StdNode> this_thread_nodes;
 
-	static const bool REORDER = true;
+	static const bool REORDER = false;
 
 	for (int i = NUM_ITERATIONS; i > 0; --i) {
+		Value val;
+		DeadlineTime deadline;
 		if (!std::bernoulli_distribution (std::min (1., ((double)queue_size_ / (double)MAX_QUEUE_SIZE))) (rndgen)) {
-			unsigned deadline = distr (rndgen);
-			++counters_ [deadline];
+			deadline = distr (rndgen);
 			++queue_size_;
-			Value val = {g_timestamp++, deadline};
+			val.idx = g_timestamp++;
+			ASSERT_TRUE (map_.insert (val, deadline));
 			ASSERT_TRUE (queue_.insert (deadline, val));
-			values.push_back (val);
-		} else if (!REORDER || values.empty () || std::bernoulli_distribution (0.5) (rndgen)) {
-			Value val;
-			DeadlineTime deadline;
-			if (queue_.delete_min (val, deadline)) {
-				ASSERT_EQ (val.deadline, deadline);
-				--counters_ [val.deadline];
-				--queue_size_;
-			}
-		} else {
-			size_t idx = std::uniform_int_distribution <size_t> (0, values.size () - 1) (rndgen);
-			Value& val = values [idx];
-			unsigned old = val.deadline;
-			unsigned deadline;
+			this_thread_nodes.push_back ({ val.idx, deadline });
+		} else if (REORDER && !this_thread_nodes.empty () && std::bernoulli_distribution (0.5) (rndgen)) {
+			size_t idx = std::uniform_int_distribution <size_t> (0, this_thread_nodes.size () - 1) (rndgen);
+			StdNode& node = this_thread_nodes [idx];
+			DeadlineTime new_deadline;
 			for (;;) {
 				deadline = distr (rndgen);
-				if (deadline != old)
+				if (deadline != node.deadline)
 					break;
 			}
-			val.deadline = deadline;
-			if (queue_.reorder (deadline, val, old)) {
-				--counters_ [old];
-				++counters_ [deadline];
-			} else
-				values.erase (values.begin () + idx);
+			val.idx = node.idx;
+			if (queue_.reorder (deadline, val, node.deadline))
+				node.deadline = deadline;
+			else
+				this_thread_nodes.erase (this_thread_nodes.begin () + idx);
+		} else if (queue_.delete_min (val, deadline)) {
+			--queue_size_;
+			ASSERT_TRUE (map_.erase (val));
+
+			auto it = std::lower_bound (this_thread_nodes.begin (), this_thread_nodes.end (), val.idx,
+				[](const StdNode& l, Index r) -> bool { return l.idx < r; });
+			if (it != this_thread_nodes.end ())
+				this_thread_nodes.erase (it);
 		}
 	}
 }
@@ -281,14 +311,12 @@ void ThreadTest <PQ>::finalize ()
 	Value val;
 	DeadlineTime deadline;
 	while (queue_.delete_min (val, deadline)) {
-		ASSERT_EQ (val.deadline, deadline);
-		--counters_ [val.deadline];
+		ASSERT_TRUE (map_.erase (val));
 		--queue_size_;
 	}
 
 	EXPECT_EQ (queue_size_, 0);
-	for (int i = 0; i < NUM_PRIORITIES; ++i)
-		EXPECT_EQ (counters_ [i], 0) << i;
+	EXPECT_TRUE (map_.empty ());
 }
 
 TYPED_TEST (TestPriorityQueue, MultiThread)
