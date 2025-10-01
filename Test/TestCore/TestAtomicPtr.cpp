@@ -29,12 +29,14 @@
 #include "../Source/AtomicCounter.h"
 #include "../Source/Chrono.h"
 #include "../Source/SystemInfo.h"
-#include <thread>
 #include <vector>
+#include <mockhost/thread.h>
 
 using namespace Nirvana::Core;
 
 namespace TestAtomicPtr {
+
+using Nirvana::Mock::thread;
 
 template <unsigned ALIGN>
 struct Align
@@ -142,8 +144,8 @@ TYPED_TEST_SUITE (TestAtomicPtr, Alignments);
 
 TYPED_TEST (TestAtomicPtr, Run)
 {
-	const size_t thread_cnt = std::max (std::thread::hardware_concurrency (), (unsigned)2);
-	std::vector <std::thread> threads;
+	const size_t thread_cnt = std::max (thread::hardware_concurrency (), (unsigned)2);
+	std::vector <thread> threads;
 	threads.reserve (thread_cnt);
 	for (unsigned int i = 0; i < thread_cnt; ++i)
 		threads.emplace_back (&TestAtomicPtr <TypeParam>::run);

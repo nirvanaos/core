@@ -30,8 +30,10 @@
 #include "../Source/SystemInfo.h"
 #include <unordered_set>
 #include <vector>
-#include <thread>
 #include <random>
+#include <mockhost/thread.h>
+
+using Nirvana::Mock::thread;
 
 namespace TestStack {
 
@@ -115,7 +117,7 @@ TYPED_TEST (TestStack, MultiThread)
 	using Value = TypeParam;
 	using MyStack = Stack <Value>;
 
-	static const unsigned thread_cnt = std::thread::hardware_concurrency ();
+	static const unsigned thread_cnt = thread::hardware_concurrency ();
 	static const unsigned element_cnt = 20;
 	static const unsigned iterations = 10000;
 
@@ -127,11 +129,11 @@ TYPED_TEST (TestStack, MultiThread)
 		stack.push (*val);
 	}
 
-	std::vector <std::thread> threads;
+	std::vector <thread> threads;
 	threads.reserve (thread_cnt);
 	std::random_device rd;
 	for (unsigned cnt = thread_cnt; cnt; --cnt) {
-		threads.emplace_back (std::thread (
+		threads.emplace_back (thread (
 			[&stack](unsigned seed) {
 				std::mt19937 rndgen (seed);
 				std::uniform_int_distribution <> distrib (0, element_cnt);
@@ -172,15 +174,15 @@ TYPED_TEST (TestStack, Stress)
 	using Value = TypeParam;
 	using MyStack = Stack <Value>;
 
-	static const unsigned thread_cnt = std::thread::hardware_concurrency ();
+	static const unsigned thread_cnt = thread::hardware_concurrency ();
 	static const unsigned iterations = 100000;
 
 	MyStack stack;
 
-	std::vector <std::thread> threads;
+	std::vector <thread> threads;
 	threads.reserve (thread_cnt);
 	for (unsigned cnt = thread_cnt; cnt; --cnt) {
-		threads.emplace_back (std::thread (
+		threads.emplace_back (thread (
 			[&stack]() {
 				for (unsigned i = 0; i < iterations; ++i) {
 					Value* val = stack.pop ();

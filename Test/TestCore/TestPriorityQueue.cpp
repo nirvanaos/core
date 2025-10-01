@@ -31,15 +31,19 @@
 #include "../Source/SystemInfo.h"
 #include <queue>
 #include <array>
-#include <thread>
 #include <random>
 #include <vector>
 #include <atomic>
+#include <mockhost/thread.h>
+#include <mockhost/mutex.h>
 
 using Nirvana::DeadlineTime;
 using Nirvana::Core::PriorityQueueReorder;
 using Nirvana::Core::SkipListWithPool;
 using Nirvana::RandomGen;
+using Nirvana::Mock::thread;
+using Nirvana::Mock::mutex;
+using Nirvana::Mock::lock_guard;
 
 namespace TestPriorityQueue {
 
@@ -231,7 +235,7 @@ private:
 	public:
 		bool insert (const Value& val, DeadlineTime deadline)
 		{
-			std::lock_guard <std::mutex> lock (mutex_);
+			lock_guard <mutex> lock (mutex_);
 			return map_.emplace (val.idx, deadline).second;
 		}
 
@@ -249,7 +253,7 @@ private:
 		}
 
 	private:
-		mutable std::mutex mutex_;
+		mutable mutex mutex_;
 		std::unordered_map <Index, DeadlineTime> map_;
 	};
 
@@ -323,11 +327,11 @@ TYPED_TEST (TestPriorityQueue, MultiThread)
 {
 	ThreadTest <TypeParam> test;
 
-	const unsigned int thread_cnt = std::thread::hardware_concurrency ();
-	std::vector <std::thread> threads;
+	const unsigned int thread_cnt = thread::hardware_concurrency ();
+	std::vector <thread> threads;
 
 	for (unsigned int i = 0; i < thread_cnt; ++i)
-		threads.emplace_back (&ThreadTest <TypeParam>::thread_proc, &test);
+		threads.emplace_back (&ThreadTest <TypeParam>::thread_proc, std::ref (test));
 
 	for (auto p = threads.begin (); p != threads.end (); ++p)
 		p->join ();

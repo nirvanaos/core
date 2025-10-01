@@ -27,13 +27,14 @@
 #include "../Source/HeapDirectory.h"
 #include <Port/Memory.h>
 #include <random>
-#include <thread>
 #include <atomic>
 #include <vector>
 #include <set>
+#include <mockhost/thread.h>
 
 using namespace Nirvana;
 using namespace Nirvana::Core;
+using Nirvana::Mock::thread;
 
 namespace TestHeapDirectory {
 
@@ -383,7 +384,7 @@ TYPED_TEST (TestHeapDirectory, Random)
 
 class ThreadAllocator :
 	public RandomAllocator,
-	public std::thread
+	public thread
 {
 public:
 	ThreadAllocator (unsigned seed) :
@@ -402,7 +403,7 @@ TYPED_TEST (TestHeapDirectory, MultiThread)
 {
 	EXPECT_TRUE (this->directory_->empty ());
 
-	const size_t thread_cnt = std::thread::hardware_concurrency ();
+	const size_t thread_cnt = thread::hardware_concurrency ();
 	static const int THREAD_ITERATIONS = 1000;
 	static const int ITERATIONS = 1000;
 	std::vector <ThreadAllocator> threads;

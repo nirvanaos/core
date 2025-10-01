@@ -29,13 +29,14 @@
 #include "../Source/Chrono.h"
 #include "../Source/SystemInfo.h"
 #include <random>
-#include <thread>
 #include <atomic>
 #include <forward_list>
 #include <vector>
+#include <mockhost/thread.h>
 
 using namespace Nirvana;
 using namespace Nirvana::Core;
+using Nirvana::Mock::thread;
 
 namespace TestHeap {
 
@@ -416,7 +417,7 @@ TEST_F (TestHeap, Random)
 
 class ThreadAllocator :
 	public RandomAllocator,
-	public std::thread
+	public thread
 {
 public:
 	ThreadAllocator (unsigned seed) :
@@ -425,14 +426,14 @@ public:
 
 	void run (Core::Heap& memory, int iterations, int top_iteration)
 	{
-		std::thread t (&RandomAllocator::run, this, std::ref (memory), iterations, top_iteration);
+		thread t (&RandomAllocator::run, this, std::ref (memory), iterations, top_iteration);
 		swap (t);
 	}
 };
 
 TEST_F (TestHeap, MultiThread)
 {
-	const unsigned int thread_cnt = std::thread::hardware_concurrency ();
+	const unsigned int thread_cnt = thread::hardware_concurrency ();
 	static const int ITERATIONS = 10;
 	static const int THREAD_ITERATIONS = 200;
 	std::vector <ThreadAllocator> threads;
@@ -487,7 +488,7 @@ void write_copy (Core::Heap& memory, void* src, void* dst, size_t size, int iter
 // Test multithread memory sharing. Exception handler must be called during this test.
 TEST_F (TestHeap, MultiThreadCopy)
 {
-	const unsigned thread_count = std::thread::hardware_concurrency ();
+	const unsigned thread_count = thread::hardware_concurrency ();
 	const int iterations = 100;
 
 	size_t block_size = (size_t)heap ().query (nullptr, Memory::QueryParam::SHARING_ASSOCIATIVITY);
@@ -497,13 +498,13 @@ TEST_F (TestHeap, MultiThreadCopy)
 	cb = block_size * thread_count;
 	uint8_t* dst = (uint8_t*)heap ().allocate (nullptr, cb, Memory::RESERVED);
 	size_t thr_size = block_size / thread_count;
-	std::vector <std::thread> threads;
+	std::vector <thread> threads;
 	threads.reserve (thread_count);
 
 	for (unsigned i = 0; i < thread_count; ++i) {
 		uint8_t* ts = src + thr_size * i;
 		uint8_t* td = dst + (block_size + thr_size) * i;
-		threads.push_back (std::thread (write_copy, std::ref (heap ()), ts, td, thr_size, iterations));
+		threads.push_back (thread (write_copy, std::ref (heap ()), ts, td, thr_size, iterations));
 	}
 
 	for (auto p = threads.begin (); p != threads.end (); ++p)

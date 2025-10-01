@@ -29,6 +29,9 @@
 #include "../Source/Chrono.h"
 #include "../Source/SystemInfo.h"
 #include <random>
+#include <mockhost/thread.h>
+
+using Nirvana::Mock::thread;
 
 namespace TestSkipList {
 
@@ -148,8 +151,8 @@ TYPED_TEST (TestSkipList, DeleteMinMT)
 {
 	TypeParam sl;
 
-	const unsigned int thread_cnt = std::thread::hardware_concurrency ();
-	std::vector <std::thread> threads;
+	const unsigned int thread_cnt = thread::hardware_concurrency ();
+	std::vector <thread> threads;
 
 	threads.reserve (thread_cnt);
 	for (unsigned int i = 0; i < thread_cnt; ++i) {
@@ -270,8 +273,8 @@ TYPED_TEST (TestSkipList, FindAndDeleteMT)
 {
 	TypeParam sl;
 
-	const unsigned int thread_cnt = std::thread::hardware_concurrency ();
-	std::vector <std::thread> threads;
+	const unsigned int thread_cnt = thread::hardware_concurrency ();
+	std::vector <thread> threads;
 
 	threads.reserve (thread_cnt);
 	for (int it = 0; it < 10; ++it) {
@@ -330,8 +333,8 @@ TYPED_TEST (TestSkipList, FindAndRemoveMT)
 {
 	TypeParam sl;
 
-	const unsigned int thread_cnt = std::thread::hardware_concurrency ();
-	std::vector <std::thread> threads;
+	const unsigned int thread_cnt = thread::hardware_concurrency ();
+	std::vector <thread> threads;
 
 	threads.reserve (thread_cnt);
 	for (int it = 0; it < 10; ++it) {
