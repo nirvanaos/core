@@ -29,11 +29,11 @@
 #include "../Source/Chrono.h"
 #include "../Source/SystemInfo.h"
 #include <random>
-#include <mockhost/thread.h>
-
-using Nirvana::Mock::thread;
+#include <Mock/Thread.h>
 
 namespace TestSkipList {
+
+using thread = Nirvana::Mock::Thread;
 
 template <typename Val, unsigned MAX_LEVEL>
 class SkipList : public Nirvana::Core::SkipList <Val, MAX_LEVEL>

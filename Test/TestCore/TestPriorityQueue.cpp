@@ -34,18 +34,19 @@
 #include <random>
 #include <vector>
 #include <atomic>
-#include <mockhost/thread.h>
-#include <mockhost/mutex.h>
+#include <Mock/Thread.h>
+#include <Mock/Mutex.h>
 
 using Nirvana::DeadlineTime;
 using Nirvana::Core::PriorityQueueReorder;
 using Nirvana::Core::SkipListWithPool;
 using Nirvana::RandomGen;
-using Nirvana::Mock::thread;
-using Nirvana::Mock::mutex;
-using Nirvana::Mock::lock_guard;
 
 namespace TestPriorityQueue {
+
+using thread = Nirvana::Mock::Thread;
+using mutex = Nirvana::Mock::Mutex;
+using Nirvana::Mock::LockGuard;
 
 template <class PQ>
 class TestPriorityQueue :
@@ -235,7 +236,7 @@ private:
 	public:
 		bool insert (const Value& val, DeadlineTime deadline)
 		{
-			lock_guard <mutex> lock (mutex_);
+			LockGuard lock (mutex_);
 			return map_.emplace (val.idx, deadline).second;
 		}
 

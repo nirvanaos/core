@@ -30,13 +30,13 @@
 #include "../Source/Chrono.h"
 #include "../Source/SystemInfo.h"
 #include <vector>
-#include <mockhost/thread.h>
+#include <Mock/Thread.h>
 
 using namespace Nirvana::Core;
 
 namespace TestAtomicPtr {
 
-using Nirvana::Mock::thread;
+using thread = Nirvana::Mock::Thread;
 
 template <unsigned ALIGN>
 struct Align

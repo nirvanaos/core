@@ -30,13 +30,14 @@
 #include <atomic>
 #include <vector>
 #include <set>
-#include <mockhost/thread.h>
+#include <Mock/Thread.h>
 
 using namespace Nirvana;
 using namespace Nirvana::Core;
-using Nirvana::Mock::thread;
 
 namespace TestHeapDirectory {
+
+using thread = Nirvana::Mock::Thread;
 
 template <size_t SIZE, size_t LEVELS, HeapDirectoryImpl IMPL>
 class HeapDirectoryFactory

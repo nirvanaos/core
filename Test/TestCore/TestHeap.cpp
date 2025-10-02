@@ -32,13 +32,14 @@
 #include <atomic>
 #include <forward_list>
 #include <vector>
-#include <mockhost/thread.h>
+#include <Mock/Thread.h>
 
 using namespace Nirvana;
 using namespace Nirvana::Core;
-using Nirvana::Mock::thread;
 
 namespace TestHeap {
+
+using thread = Nirvana::Mock::Thread;
 
 class TestHeap :
 	public ::testing::Test

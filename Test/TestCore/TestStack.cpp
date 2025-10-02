@@ -31,13 +31,13 @@
 #include <unordered_set>
 #include <vector>
 #include <random>
-#include <mockhost/thread.h>
-
-using Nirvana::Mock::thread;
+#include <Mock/Thread.h>
 
 namespace TestStack {
 
 using namespace Nirvana::Core;
+
+using thread = Nirvana::Mock::Thread;
 
 template <class Val>
 class TestStack :
