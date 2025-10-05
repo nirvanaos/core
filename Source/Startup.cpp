@@ -37,10 +37,9 @@
 namespace Nirvana {
 namespace Core {
 
-Startup::Startup (int argc, char* argv [], char* envp []) :
+Startup::Startup (int argc, char* argv []) :
 	argc_ (argc),
 	argv_ (argv),
-	envp_ (envp),
 	ret_ (0)
 {}
 

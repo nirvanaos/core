@@ -36,8 +36,8 @@ namespace Core {
 class StartupSys : public Startup
 {
 public:
-	StartupSys (int argc, char* argv [], char* envp []) :
-		Startup (argc, argv, envp)
+	StartupSys (int argc, char* argv []) :
+		Startup (argc, argv)
 	{}
 
 	~StartupSys ()

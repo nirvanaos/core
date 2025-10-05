@@ -59,7 +59,7 @@ public:
 	}
 
 protected:
-	Startup (int argc, char* argv [], char* envp []);
+	Startup (int argc, char* argv []);
 
 	~Startup ()
 	{}
@@ -72,7 +72,6 @@ protected:
 protected:
 	int argc_;
 	char** argv_;
-	char** envp_;
 	int ret_;
 
 private:
