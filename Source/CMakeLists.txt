@@ -65,3 +65,9 @@ add_library (core STATIC
 
 add_subdirectory (ORB)
 add_subdirectory (NameService)
+
+target_include_directories (core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+
+#if (WIN32)
+target_include_directories (core PUBLIC ${CMAKE_SOURCE_DIR}/port/windows)
+#endif ()

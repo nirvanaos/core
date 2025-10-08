@@ -43,7 +43,7 @@ target_sources (core PRIVATE
 	Reference.cpp
 	ReferenceLocal.cpp
 	ReferenceRemote.cpp
-	remarchal_output.cpp
+	remarshal_output.cpp
 	RemoteDomains.cpp
 	RemoteReferences.cpp
 	RequestEncap.cpp
