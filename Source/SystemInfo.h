@@ -39,9 +39,9 @@ class SystemInfo : private Port::SystemInfo
 	using Base = Port::SystemInfo;
 
 public:
-	static void initialize () noexcept
+	static bool initialize () noexcept
 	{
-		Base::initialize ();
+		return Base::initialize ();
 	}
 
 	static void terminate () noexcept

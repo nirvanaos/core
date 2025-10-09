@@ -58,12 +58,9 @@ protected:
 #endif
 		>::type>::type;
 
-#ifdef _WIN32
-	static const unsigned ADDRESS_BITS = (sizeof (void*) == 8) ? 48 : 31;
-	static const uintptr_t UNUSED_BITS_VAL = 0;
-#else
-#error Unknown host platform
-#endif
+	// Address space properties, see Port/config.h
+	static const unsigned ADDRESS_BITS = ADDRESS_BITS_USED;
+	static const uintptr_t UNUSED_BITS_VAL = ADDRESS_UNUSED_BITS_VAL;
 
 	static const unsigned UNUSED_BITS = sizeof (void*) * 8 - ADDRESS_BITS;
 	static const uintptr_t UNUSED_BITS_MASK = ~(uintptr_t)0 << ADDRESS_BITS;
