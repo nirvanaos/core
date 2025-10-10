@@ -68,6 +68,9 @@ add_subdirectory (NameService)
 
 target_include_directories (core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
-#if (WIN32)
-target_include_directories (core PUBLIC ${CMAKE_SOURCE_DIR}/port/windows)
-#endif ()
+target_compile_definitions (core PUBLIC NIRVANA_HOST_PLATFORM=${NIRVANA_HOST_PLATFORM})
+
+if (${NIRVANA_HOST_TYPE} STREQUAL "Windows")
+	target_compile_options (core PUBLIC -fms-extensions)
+	target_include_directories (core PUBLIC ${CMAKE_SOURCE_DIR}/port/windows)
+endif ()

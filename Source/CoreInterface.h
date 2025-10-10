@@ -77,8 +77,8 @@ protected:
 	template <class S, class ... Args> friend
 	CORBA::Internal::I_ref <typename S::PrimaryInterface> CORBA::make_pseudo (Args&& ... args);
 
-	template <class T, class ... Args> friend
-	CORBA::servant_reference <T> CORBA::make_reference (Args&& ...);
+	template <class T1, class ... Args> friend
+	CORBA::servant_reference <T1> CORBA::make_reference (Args&& ...);
 
 	template <class ... Args>
 	ImplDynamic (Args&& ... args) :
