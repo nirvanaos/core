@@ -29,7 +29,7 @@
 #pragma once
 
 #include <CORBA/Server.h>
-#include <Nirvana/CoreDomains_s.h>
+#include <CoreDomains_s.h>
 #include <Nirvana/BindErrorUtl.h>
 #include "ORB/SysServant.h"
 #include "ORB/system_services.h"

@@ -30,7 +30,7 @@
 #pragma once
 
 #include <CORBA/CORBA.h>
-#include <CORBA/IOP.h>
+#include <ORB/IOP.h>
 #include <Port/ESIOP.h>
 #include <Port/config.h>
 #include "../Security.h"

@@ -29,7 +29,7 @@
 #pragma once
 
 #include "Domain.h"
-#include <CORBA/IOP.h>
+#include <ORB/IOP.h>
 #include "ESIOP.h"
 #include "StreamInEncap.h"
 #include "tagged_seq.h"

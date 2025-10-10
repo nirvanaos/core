@@ -1,4 +1,4 @@
-target_sources (core PRIVATE
+target_sources (Core PRIVATE
 	Dir.cpp
 	DirIter.cpp
 	File.cpp

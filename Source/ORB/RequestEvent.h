@@ -29,7 +29,7 @@
 #pragma once
 
 #include <CORBA/Server.h>
-#include "../CORBA/RequestCallback_s.h"
+#include <ORB/RequestCallback_s.h>
 #include "../Event.h"
 #include "../LifeCyclePseudo.h"
 

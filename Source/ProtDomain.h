@@ -29,7 +29,7 @@
 #pragma once
 
 #include "ORB/SysServantStatic.h"
-#include <Nirvana/CoreDomains_s.h>
+#include <CoreDomains_s.h>
 #include <Port/ProtDomain.h>
 #include "Binder.h"
 #include "ORB/Services.h"

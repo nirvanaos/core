@@ -479,12 +479,12 @@ private:
 
 	void final_release () noexcept;
 
-	void _add_ref () noexcept
+	void _add_ref () noexcept override
 	{
 		ref_cnt_.increment ();
 	}
 
-	void _remove_ref () noexcept
+	void _remove_ref () noexcept override
 	{
 		if (0 == ref_cnt_.decrement_seq ())
 			final_release ();

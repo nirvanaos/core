@@ -29,7 +29,7 @@
 #pragma once
 
 #include "Domain.h"
-#include <CORBA/IIOP.h>
+#include <ORB/IIOP.h>
 
 namespace Nirvana {
 namespace Core {

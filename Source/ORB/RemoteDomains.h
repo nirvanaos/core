@@ -30,7 +30,7 @@
 
 #include "DomainRemote.h"
 #include "../MapUnorderedStable.h"
-#include <CORBA/IIOP.h>
+#include <ORB/IIOP.h>
 #include <list>
 
 namespace std {
