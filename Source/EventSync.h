@@ -29,6 +29,7 @@
 #pragma once
 
 #include <assert.h>
+#include <CORBA/exceptions.h>
 
 namespace Nirvana {
 namespace Core {

@@ -23,7 +23,6 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "pch.h"
 #include <CORBA/Server.h>
 #include <Nirvana/Module_s.h>
 #include "TLS.h"

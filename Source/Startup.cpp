@@ -24,9 +24,8 @@
 *  popov.nirvana@gmail.com
 */
 
-#include "pch.h"
-#include <CORBA/Server.h>
 #include "Startup.h"
+#include <CORBA/Server.h>
 #include "ExecDomain.h"
 #include "ProtDomain.h"
 #include "initterm.h"

@@ -29,11 +29,8 @@
 #pragma once
 
 #include <Port/config.h>
+#include <algorithm>
 #include <Nirvana/bitutils.h>
-
-#ifndef ATOMIC_POINTER_LOCK_FREE
-#error Atomic pointer is required.
-#endif
 
 namespace Nirvana {
 namespace Core {

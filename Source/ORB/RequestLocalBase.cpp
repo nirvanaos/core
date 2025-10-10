@@ -23,7 +23,6 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "../pch.h"
 #include "RequestLocalBase.h"
 #include "../ExecDomain.h"
 #include "../virtual_copy.h"

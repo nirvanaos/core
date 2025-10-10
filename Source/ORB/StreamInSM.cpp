@@ -23,7 +23,6 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "../pch.h"
 #include "StreamInSM.h"
 #include <Nirvana/bitutils.h>
 #include "../ExecDomain.h"

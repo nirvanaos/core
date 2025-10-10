@@ -23,7 +23,6 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "pch.h"
 #include "Signals.h"
 #include <Nirvana/signal_defs.h>
 #include <algorithm>

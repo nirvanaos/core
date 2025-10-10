@@ -23,7 +23,6 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "pch.h"
 #include "append_path.h"
 #include "NameService/FileSystem.h"
 #include "CurrentDir.h"

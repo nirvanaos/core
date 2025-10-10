@@ -23,7 +23,6 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "pch.h"
 #include "deactivate_servant.h"
 #include "ORB/POA_Root.h"
 

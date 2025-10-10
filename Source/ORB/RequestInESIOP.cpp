@@ -23,7 +23,6 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "../pch.h"
 #include "RequestInESIOP.h"
 #include "StreamOutSMReply.h"
 #include "../Binder.h"

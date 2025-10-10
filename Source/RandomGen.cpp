@@ -26,8 +26,8 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "pch.h"
 #include "RandomGen.h"
+#include <assert.h>
 #include <atomic>
 
 namespace Nirvana {

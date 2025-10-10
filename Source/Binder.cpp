@@ -23,12 +23,11 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "pch.h"
+#include "Binder.inl"
 #include <CORBA/Server.h>
 #include <CORBA/Proxy/ProxyBase.h>
 #include <Nirvana/Domains.h>
 #include <Nirvana/OLF_Iterator.h>
-#include "Binder.inl"
 #include "ORB/ServantBase.h"
 #include "ORB/LocalObject.h"
 #include "ORB/RequestLocalBase.h"

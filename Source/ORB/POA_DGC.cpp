@@ -23,7 +23,7 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "../pch.h"
+#include "POA_DGC.h"
 #include "POA_Root.h"
 #include "Nirvana_policies.h"
 

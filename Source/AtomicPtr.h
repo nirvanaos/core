@@ -31,6 +31,10 @@
 #include "TaggedPtr.h"
 #include <atomic>
 
+#ifndef ATOMIC_POINTER_LOCK_FREE
+#error Atomic pointer is required.
+#endif
+
 namespace Nirvana {
 namespace Core {
 

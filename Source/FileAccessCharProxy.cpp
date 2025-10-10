@@ -23,7 +23,7 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "pch.h"
+#include "FileAccessCharProxy.h"
 #include "FileAccessChar_impl.h"
 
 namespace Nirvana {

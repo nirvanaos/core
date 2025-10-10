@@ -32,6 +32,10 @@
 #include <atomic>
 #include <type_traits>
 
+#ifndef ATOMIC_POINTER_LOCK_FREE
+#error Atomic pointer is required.
+#endif
+
 namespace Nirvana {
 namespace Core {
 

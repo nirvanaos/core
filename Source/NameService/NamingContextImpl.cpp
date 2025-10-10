@@ -23,7 +23,6 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "../pch.h"
 #include "NamingContextImpl.h"
 #include "NamingContextDefault.h"
 #include "NameService.h"

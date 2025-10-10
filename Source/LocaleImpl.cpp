@@ -23,7 +23,6 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "pch.h"
 #include "LocaleImpl.h"
 #include <CORBA/Server.h>
 #include <Nirvana/nls_s.h>

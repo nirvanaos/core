@@ -23,7 +23,6 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "../pch.h"
 #include "ExceptionHolder.h"
 
 NIRVANA_GET_FACTORY (Messaging::ExceptionHolder, CORBA::Core::ExceptionHolderImpl)

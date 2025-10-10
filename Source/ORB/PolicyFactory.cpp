@@ -23,7 +23,6 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "../pch.h"
 #include "PolicyFactory.h"
 #include "PortableServer_policies.h"
 #include "BiDirPolicy_policies.h"

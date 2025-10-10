@@ -23,7 +23,7 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "pch.h"
+#include "Module.h"
 #include <Nirvana/OLF_Iterator.h>
 #include "ClassLibrary.h"
 #include "Singleton.h"

@@ -23,7 +23,7 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "pch.h"
+#include "SyncDomain.h"
 #include "ExecDomain.h"
 
 namespace Nirvana {
