@@ -27,7 +27,7 @@
 #include "SysManager.h"
 #include "SysDomain.h"
 #include "ORB/ORB.h"
-#include <CoreDomains.h>
+#include <IDL/CoreDomains.h>
 
 namespace Nirvana {
 namespace Core {

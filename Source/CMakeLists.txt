@@ -1,4 +1,4 @@
-add_library (Core STATIC
+target_sources (Core PRIVATE
 	append_path.cpp
 	AtExit.cpp
 	BackOff.cpp
@@ -63,19 +63,5 @@ add_library (Core STATIC
 	WaitList.cpp
 )
 
-set (internal_idl
-	${CMAKE_CURRENT_SOURCE_DIR}/CoreDomains.idl
-)
-
 add_subdirectory (ORB)
 add_subdirectory (NameService)
-
-nirvana_module_idl (Core IDL_FILES ${internal_idl} OPTIONS -no_proxy)
-
-target_include_directories (Core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_compile_definitions (Core PUBLIC NIRVANA_HOST_PLATFORM=${NIRVANA_HOST_PLATFORM})
-
-if (${NIRVANA_HOST_TYPE} STREQUAL "Windows")
-	target_include_directories (Core PUBLIC ${CMAKE_SOURCE_DIR}/Port/Windows)
-	target_compile_options (Core PUBLIC -fms-extensions)
-endif ()

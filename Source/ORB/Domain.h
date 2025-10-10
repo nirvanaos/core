@@ -29,7 +29,7 @@
 #pragma once
 
 #include <CORBA/CORBA.h>
-#include <ORB/IOP.h>
+#include <IDL/ORB/IOP.h>
 #include <CORBA/Proxy/InterfaceMetadata.h>
 #include <Nirvana/SimpleList.h>
 #include "../AtomicCounter.h"

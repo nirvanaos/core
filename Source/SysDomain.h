@@ -29,7 +29,7 @@
 #pragma once
 
 #include <CORBA/Server.h>
-#include <CoreDomains_s.h>
+#include <IDL/CoreDomains_s.h>
 #include <Nirvana/BindErrorUtl.h>
 #include "ORB/SysServant.h"
 #include "ORB/system_services.h"
@@ -40,7 +40,7 @@
 #include "NameService/FileSystem.h"
 #include "open_binary.h"
 #include "Binary.h"
-#include "../PacMan/factory.h"
+#include <PacMan/factory.h>
 
 namespace Nirvana {
 namespace Core {
