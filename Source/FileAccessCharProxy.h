@@ -29,7 +29,6 @@
 
 #include <CORBA/Server.h>
 #include "NameService/FileChar.h"
-#include "ORB/ORB.h"
 #include <Port/FileSystem.h>
 
 namespace Nirvana {

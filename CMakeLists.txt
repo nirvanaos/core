@@ -5,13 +5,9 @@ target_compile_definitions (Core PUBLIC NIRVANA_HOST_PLATFORM=${NIRVANA_HOST_PLA
 
 if (${NIRVANA_HOST_TYPE} STREQUAL "Windows")
 	target_include_directories (Core PUBLIC ${CMAKE_SOURCE_DIR}/Port/Windows)
-	target_compile_options (Core PUBLIC -fms-extensions)
 endif ()
 
 add_subdirectory (Source)
-
-find_package(boost_preprocessor CONFIG REQUIRED)
-target_link_libraries(Core PRIVATE Boost::preprocessor)
 
 set (core_idl)
 add_subdirectory (IDL)

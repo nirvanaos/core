@@ -65,3 +65,6 @@ target_sources (Core PRIVATE
 
 add_subdirectory (ORB)
 add_subdirectory (NameService)
+
+find_package (boost_preprocessor CONFIG REQUIRED)
+target_link_libraries (Core PRIVATE Boost::preprocessor)
